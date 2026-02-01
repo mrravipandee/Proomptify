@@ -1,3 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+Mono+TC&family=Numans&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+* {
+  font-family: 'Numans', sans-serif;
+}
+
+.lxgw-mono {
+  font-family: 'LXGW WenKai Mono TC', monospace;
+}
