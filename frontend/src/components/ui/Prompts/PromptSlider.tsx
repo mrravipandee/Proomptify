@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import PromptCard, { PromptProps } from './PromptCard'; // Import the Card component
 
@@ -10,13 +11,15 @@ interface PromptSliderProps {
   description?: string;
   prompts: PromptProps[]; // Array of prompts
   onCopyPrompt?: () => void;
+  categorySlug?: string; // Optional URL slug for the category
 }
 
 const PromptSlider: React.FC<PromptSliderProps> = ({ 
   title, 
   description, 
   prompts, 
-  onCopyPrompt 
+  onCopyPrompt,
+  categorySlug 
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +28,9 @@ const PromptSlider: React.FC<PromptSliderProps> = ({
       scrollRef.current.scrollBy({ left: offset, behavior: 'smooth' });
     }
   };
+
+  // Generate category slug from title if not provided
+  const slug = categorySlug || title.toLowerCase().replace(/\s+/g, '');
 
   return (
     <div className="py-8 border-b border-white/5 last:border-0">
@@ -66,14 +72,14 @@ const PromptSlider: React.FC<PromptSliderProps> = ({
         ))}
         
         {/* "View All" Link at the end */}
-        <div className="w-40 flex-shrink-0 flex items-center justify-center snap-start h-[280px]">
-            <button className="flex flex-col items-center gap-3 text-gray-500 hover:text-purple-400 transition-colors group">
+        <Link href={`/prompts/${slug}`} className="w-40 flex-shrink-0 flex items-center justify-center snap-start h-[420px]">
+            <div className="flex flex-col items-center gap-3 text-gray-500 hover:text-purple-400 transition-colors group cursor-pointer">
                 <div className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center group-hover:border-purple-400 group-hover:bg-purple-500/10 transition-all">
                     <ArrowRight size={24} />
                 </div>
                 <span className="text-sm font-medium">View All</span>
-            </button>
-        </div>
+            </div>
+        </Link>
       </div>
     </div>
   );

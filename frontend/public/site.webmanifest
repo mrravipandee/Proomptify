@@ -1,0 +1,21 @@
+{
+  "name": "Proomptify",
+  "short_name": "Proomptify",
+  "description": "Premium AI Prompts for Content Creators",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050520",
+  "theme_color": "#8B5CF6",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

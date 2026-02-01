@@ -2,11 +2,20 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+
+interface Star {
+  id: number;
+  top: string;
+  left: string;
+  size: string;
+  delay: number;
+  duration: number;
+}
 
 // Helper to generate random stars
-const generateStars = (count) => {
-  const stars = [];
+const generateStars = (count: number): Star[] => {
+  const stars: Star[] = [];
   for (let i = 0; i < count; i++) {
     stars.push({
       id: i,
@@ -21,12 +30,8 @@ const generateStars = (count) => {
 };
 
 const Hero = () => {
-  const [stars, setStars] = useState([]);
-
-  // Generate stars only on client-side to avoid hydration mismatches
-  useEffect(() => {
-    setStars(generateStars(40));
-  }, []);
+  // Generate stars only on client-side using lazy initialization
+  const [stars,] = useState(() => generateStars(40));
 
   return (
     <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#050520] pt-20 pb-32">

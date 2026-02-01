@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://proomptify.shop/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Google-specific
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+
+# Bing-specific
+User-agent: Bingbot
+Allow: /
+Disallow: /api/

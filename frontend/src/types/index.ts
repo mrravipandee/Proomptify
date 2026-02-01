@@ -1,6 +1,6 @@
 // types/index.ts
 
-export type CategoryId = 'all' | 'insta' | 'linkedin' | 'youtube' | 'art' | 'chatgpt' | 'resume' | 'bio';
+export type CategoryId = 'all' | 'instagram' | 'linkedin' | 'youtube' | 'aiart' | 'chatgpt' | 'resume' | 'bio' | 'tiktok' | 'twitter';
 
 export interface Category {
   id: CategoryId;
@@ -14,5 +14,11 @@ export interface Prompt {
   description: string;
   tags: string[];
   promptText: string;
-  category: CategoryId;
+  category: string;
+  imgUrl?: string;
+  steps?: string[];
+  completeSteps?: string[];
+  estimatedTime?: string;
+  usageCount?: number;
+  referenceUrl?: string | null;
 }
