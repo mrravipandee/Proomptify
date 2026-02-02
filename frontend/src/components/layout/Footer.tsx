@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const Footer = () => {
     return (
       <footer className="bg-[#020210] border-t border-white/5 pt-16 pb-8">
@@ -25,8 +27,10 @@ const Footer = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="col-span-1 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-500 rounded-lg flex items-center justify-center text-white font-bold">P</div>
-                <span className="text-xl font-bold text-white">PromptHub</span>
+                <div>
+                  <Image src="/proomptify.png" alt="Proomptify Logo" width={32} height={32} />
+                </div>
+                <span className="text-xl font-bold text-white">Proomptify.shop</span>
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 The #1 AI Prompt Store for creators. Stop guessing, start creating.
