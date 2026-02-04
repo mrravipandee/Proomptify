@@ -5,8 +5,12 @@
     "rootDir": "src",
     "outDir": "dist",
     "strict": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
+    "moduleResolution": "node",
     "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
     "skipLibCheck": true
-  }
+  },
+  "include": ["src"]
 }
