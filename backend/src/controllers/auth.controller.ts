@@ -10,7 +10,7 @@ import { sendOTPEmail } from "../services/mail.service";
  */
 export const register = async (req: Request, res: Response) => {
   try {
-    const { name, email, phone, instaHandle, password } = req.body;
+    const { name, email, phone, instaHandle, password, gender } = req.body;
 
     if (!name || !email || !phone || !password) {
       return res.status(400).json({ message: "Missing required fields" });
@@ -63,6 +63,7 @@ export const register = async (req: Request, res: Response) => {
       email,
       phone,
       instaHandle,
+      gender,
       passwordHash,
       otp,
       otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 min
@@ -228,7 +229,11 @@ export const login = async (req: Request, res: Response) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        plan: user.plan
+        phone: user.phone,
+        instaHandle: user.instaHandle,
+        gender: user.gender,
+        plan: user.plan,
+        isVerified: user.isVerified
       }
     });
   } catch (error) {

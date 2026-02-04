@@ -9,6 +9,7 @@ export interface IUser extends Document {
     phone: string;
     instaHandle?: string;
     passwordHash: string;
+    gender?: "male" | "female" | "other";
 
     isVerified: boolean;
     otp?: string;
@@ -48,6 +49,12 @@ const UserSchema: Schema<IUser> = new Schema(
 
         instaHandle: {
             type: String,
+            default: null
+        },
+
+        gender: {
+            type: String,
+            enum: ["male", "female", "other"],
             default: null
         },
 

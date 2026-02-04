@@ -2,6 +2,7 @@ import express, { Application } from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import usageRoutes from "./routes/usage.routes";
+import paymentRoutes from "./routes/payment.routes";
 
 const app: Application = express();
 
@@ -34,6 +35,7 @@ app.use(
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/usage", usageRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.get("/", (_, res) => {
   res.send("Hello, World!");
