@@ -26,8 +26,8 @@ export default function SignInPage() {
     try {
       await login(formData.email, formData.password);
       router.push('/');
-    } catch (err: any) {
-      setError(err.message || 'Login failed');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }

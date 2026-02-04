@@ -186,7 +186,25 @@ export const verifyEmail = async (req: Request, res: Response) => {
     user.set({ otp: undefined, otpExpiresAt: undefined });
     await user.save();
 
-    return res.json({ message: "Email verified successfully" });
+    // Generate JWT token for auto-login
+    const token = signToken({ userId: user._id.toString(), email: user.email });
+
+    console.log("✅ Email verified successfully for:", email);
+
+    return res.json({ 
+      message: "Email verified successfully",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        instaHandle: user.instaHandle,
+        gender: user.gender,
+        plan: user.plan,
+        isVerified: user.isVerified
+      }
+    });
   } catch (error) {
     return res.status(500).json({ message: "Server error" });
   }

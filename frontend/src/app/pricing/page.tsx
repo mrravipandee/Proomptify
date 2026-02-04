@@ -102,7 +102,9 @@ export default function PricingPage() {
     setLoading(planType);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500/api';
+      console.log('Creating payment session for:', { planType, userId: user.id });
+      
       const response = await fetch(`${API_URL}/payment/create-session`, {
         method: 'POST',
         headers: {
@@ -115,17 +117,24 @@ export default function PricingPage() {
         })
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create payment session');
+      }
 
-      if (response.ok && data.paymentUrl) {
+      const data = await response.json();
+      console.log('Payment session created:', data);
+
+      if (data.paymentUrl) {
         // Open Dodopayments checkout in new tab
         window.open(data.paymentUrl, '_blank');
       } else {
-        alert('Failed to create payment session. Please try again.');
+        throw new Error('No payment URL received from server');
       }
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Something went wrong. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+      alert(errorMessage);
     } finally {
       setLoading(null);
     }

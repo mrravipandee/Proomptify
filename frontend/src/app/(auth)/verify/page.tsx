@@ -6,9 +6,11 @@ import { useState, useRef, useEffect } from 'react';
 import { FiMail, FiCheck } from 'react-icons/fi';
 import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function VerifyPage() {
   const router = useRouter();
+  const { setUser, setToken } = useAuth();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
@@ -90,16 +92,25 @@ export default function VerifyPage() {
     setError('');
 
     try {
-      await api.verifyEmail(email, otpCode);
+      const response = await api.verifyEmail(email, otpCode);
+      
+      // Auto-login: Store token and user data
+      if (response.token && response.user) {
+        setToken(response.token);
+        setUser(response.user);
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+      }
       
       setIsVerified(true);
       localStorage.removeItem('verifyEmail');
       
+      // Redirect to home page instead of login
       setTimeout(() => {
-        router.push('/login');
+        router.push('/');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Verification failed');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Verification failed');
     } finally {
       setIsVerifying(false);
     }
@@ -114,8 +125,8 @@ export default function VerifyPage() {
       setResendTimer(60);
       setError('');
       setOtp(['', '', '', '', '', '']);
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend OTP');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to resend OTP');
     }
   };
 
@@ -236,7 +247,7 @@ export default function VerifyPage() {
                 </p>
                 <div className="flex items-center justify-center gap-2 text-purple-400">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-400"></div>
-                  <span>Redirecting to sign in...</span>
+                  <span>Logging you in...</span>
                 </div>
               </div>
             </>
