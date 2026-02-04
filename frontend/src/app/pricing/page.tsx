@@ -3,6 +3,9 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FiCheck, FiZap, FiStar, FiTrendingUp, FiShield, FiClock } from 'react-icons/fi';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 const pricingPlans = [
   {
@@ -81,6 +84,53 @@ const benefits = [
 ];
 
 export default function PricingPage() {
+  const { user, token } = useAuth();
+  const router = useRouter();
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const handleUpgrade = async (planType: string) => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    if (planType === 'free') {
+      router.push('/prompts');
+      return;
+    }
+
+    setLoading(planType);
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${API_URL}/payment/create-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          plan: planType,
+          userId: user.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.paymentUrl) {
+        // Open Dodopayments checkout in new tab
+        window.open(data.paymentUrl, '_blank');
+      } else {
+        alert('Failed to create payment session. Please try again.');
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Something went wrong. Please try again.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#050520] text-white pt-24 pb-20">
       {/* Header */}
@@ -149,16 +199,17 @@ export default function PricingPage() {
               </ul>
 
               {/* CTA Button */}
-              <Link
-                href={plan.name === 'Free' ? '/prompts' : '#'}
+              <button
+                onClick={() => handleUpgrade(plan.name.toLowerCase())}
+                disabled={loading === plan.name.toLowerCase()}
                 className={`block w-full text-center py-4 rounded-xl font-semibold transition-all duration-300 ${
                   plan.popular
                     ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg shadow-purple-500/30'
                     : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-                }`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                {plan.cta}
-              </Link>
+                {loading === plan.name.toLowerCase() ? 'Processing...' : plan.cta}
+              </button>
             </motion.div>
           ))}
         </div>
