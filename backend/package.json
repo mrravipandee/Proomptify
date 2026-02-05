@@ -5,6 +5,7 @@
   "main": "server.ts",
   "scripts": {
     "dev": "nodemon",
+    "prebuild": "npm install && rm -rf dist",
     "build": "tsc",
     "start": "node dist/server.js"
   },
