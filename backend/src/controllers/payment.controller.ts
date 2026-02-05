@@ -10,7 +10,6 @@ const PRODUCTS = {
 
 // Get base URL from environment
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5500";
 
 /**
  * Create Payment Session

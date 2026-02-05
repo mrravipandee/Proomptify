@@ -9,9 +9,6 @@ const hash_1 = require("../utils/hash");
 const jwt_1 = require("../utils/jwt");
 const otp_1 = require("../utils/otp");
 const mail_service_1 = require("../services/mail.service");
-/**
- * REGISTER + SEND OTP
- */
 const register = async (req, res) => {
     try {
         const { name, email, phone, instaHandle, password, gender } = req.body;
@@ -19,23 +16,19 @@ const register = async (req, res) => {
             return res.status(400).json({ message: "Missing required fields" });
         }
         const existingUser = await User_1.default.findOne({ email });
-        // If user exists and is already verified
         if (existingUser && existingUser.isVerified) {
             return res.status(409).json({
                 message: "Email already registered. Please login."
             });
         }
-        // If user exists but NOT verified - resend OTP
         if (existingUser && !existingUser.isVerified) {
             const otp = (0, otp_1.generateOTP)();
             existingUser.otp = otp;
-            existingUser.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-            // Update password if they're trying again with different password
+            existingUser.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
             if (password) {
                 existingUser.passwordHash = await (0, hash_1.hashPassword)(password);
             }
             await existingUser.save();
-            // Send OTP email
             try {
                 await (0, mail_service_1.sendOTPEmail)(email, otp);
                 return res.status(200).json({
@@ -51,7 +44,6 @@ const register = async (req, res) => {
                 });
             }
         }
-        // New user - create account
         const passwordHash = await (0, hash_1.hashPassword)(password);
         const otp = (0, otp_1.generateOTP)();
         await User_1.default.create({
@@ -62,10 +54,9 @@ const register = async (req, res) => {
             gender,
             passwordHash,
             otp,
-            otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 min
+            otpExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
             isVerified: false
         });
-        // Send OTP email
         try {
             await (0, mail_service_1.sendOTPEmail)(email, otp);
             return res.status(201).json({
@@ -87,9 +78,6 @@ const register = async (req, res) => {
     }
 };
 exports.register = register;
-/**
- * RESEND OTP
- */
 const resendOTP = async (req, res) => {
     try {
         const { email } = req.body;
@@ -103,12 +91,10 @@ const resendOTP = async (req, res) => {
         if (user.isVerified) {
             return res.status(400).json({ message: "Email already verified" });
         }
-        // Generate new OTP
         const otp = (0, otp_1.generateOTP)();
         user.otp = otp;
-        user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+        user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
         await user.save();
-        // Send OTP email
         try {
             await (0, mail_service_1.sendOTPEmail)(email, otp);
             return res.json({
@@ -128,9 +114,6 @@ const resendOTP = async (req, res) => {
     }
 };
 exports.resendOTP = resendOTP;
-/**
- * VERIFY EMAIL OTP
- */
 const verifyEmail = async (req, res) => {
     try {
         console.log("📨 Verify email request received:", { email: req.body.email, otpProvided: !!req.body.otp });
@@ -149,7 +132,6 @@ const verifyEmail = async (req, res) => {
             console.log("❌ No OTP stored for user");
             return res.status(400).json({ message: "No OTP found. Please register or resend OTP." });
         }
-        // Trim whitespace and compare as strings
         const userOTP = user.otp.toString().trim();
         const inputOTP = otp.toString().trim();
         console.log(`🔍 Verifying OTP for ${email}`);
@@ -169,7 +151,6 @@ const verifyEmail = async (req, res) => {
         user.isVerified = true;
         user.set({ otp: undefined, otpExpiresAt: undefined });
         await user.save();
-        // Generate JWT token for auto-login
         const token = (0, jwt_1.signToken)({ userId: user._id.toString(), email: user.email });
         console.log("✅ Email verified successfully for:", email);
         return res.json({
@@ -192,9 +173,6 @@ const verifyEmail = async (req, res) => {
     }
 };
 exports.verifyEmail = verifyEmail;
-/**
- * LOGIN
- */
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;

@@ -7,9 +7,6 @@ exports.trackPromptUsage = void 0;
 const Usage_1 = __importDefault(require("../models/Usage"));
 const User_1 = __importDefault(require("../models/User"));
 const FREE_LIFETIME_LIMIT = 10;
-/**
- * Track prompt click
- */
 const trackPromptUsage = async (req, res) => {
     try {
         const userId = req.user?.userId;
@@ -20,7 +17,6 @@ const trackPromptUsage = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        // 🔓 Paid users → unlimited
         if (user.plan !== "free") {
             return res.json({
                 allowed: true,
@@ -28,7 +24,6 @@ const trackPromptUsage = async (req, res) => {
             });
         }
         let usage = await Usage_1.default.findOne({ userId });
-        // First ever usage
         if (!usage) {
             usage = await Usage_1.default.create({
                 userId,
@@ -39,14 +34,12 @@ const trackPromptUsage = async (req, res) => {
                 remaining: FREE_LIFETIME_LIMIT - 1
             });
         }
-        // Limit reached
         if (usage.count >= FREE_LIFETIME_LIMIT) {
             return res.status(403).json({
                 allowed: false,
                 message: "FREE_LIMIT_REACHED"
             });
         }
-        // Increment usage
         usage.count += 1;
         await usage.save();
         return res.json({

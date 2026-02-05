@@ -3,6 +3,7 @@ import cors from "cors";
 import authRoutes from "./routes/auth.routes";
 import usageRoutes from "./routes/usage.routes";
 import paymentRoutes from "./routes/payment.routes";
+import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 
 const app: Application = express();
 
@@ -44,5 +45,9 @@ app.get("/", (_, res) => {
 app.get("/health", (_, res) => {
   res.json({ status: "OK" });
 });
+
+// Error handling - must be AFTER all routes
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;

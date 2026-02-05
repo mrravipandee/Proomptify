@@ -5,9 +5,9 @@
   "main": "server.ts",
   "scripts": {
     "dev": "nodemon",
-    "prebuild": "npm install && rm -rf dist",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "clean": "rm -rf dist"
   },
   "engines": {
     "node": ">=20.0.0"

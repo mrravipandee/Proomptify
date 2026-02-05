@@ -8,11 +8,10 @@ const cors_1 = __importDefault(require("cors"));
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const usage_routes_1 = __importDefault(require("./routes/usage.routes"));
 const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
+const error_middleware_1 = require("./middlewares/error.middleware");
 const app = (0, express_1.default)();
-// cors middleware
 app.use((0, cors_1.default)({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps, curl, postman)
         if (!origin)
             return callback(null, true);
         const allowedOrigins = [
@@ -42,4 +41,6 @@ app.get("/", (_, res) => {
 app.get("/health", (_, res) => {
     res.json({ status: "OK" });
 });
+app.use(error_middleware_1.notFoundHandler);
+app.use(error_middleware_1.errorHandler);
 exports.default = app;

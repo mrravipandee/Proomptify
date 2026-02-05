@@ -5,20 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCurrentPlan = exports.handlePaymentWebhook = exports.createPaymentSession = void 0;
 const User_1 = __importDefault(require("../models/User"));
-// Product IDs from environment variables
 const PRODUCTS = {
     YEARLY: process.env.DODOPAYMENTS_YEARLY_PRODUCT_ID || "pdt_0NXihbAhmbDcsX9nTvqZR",
     LIFETIME: process.env.DODOPAYMENTS_LIFETIME_PRODUCT_ID || "pdt_0NXihZ5BuHgFCMxg7P54Z"
 };
-// Get base URL from environment
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5500";
-/**
- * Create Payment Session
- */
 const createPaymentSession = async (req, res) => {
     try {
-        const { plan, userId } = req.body; // plan: 'yearly' | 'lifetime'
+        const { plan, userId } = req.body;
         if (!plan || !userId) {
             return res.status(400).json({ message: "Plan and userId required" });
         }
@@ -26,9 +20,7 @@ const createPaymentSession = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        // Determine product ID based on plan
         const productId = plan === 'yearly' ? PRODUCTS.YEARLY : PRODUCTS.LIFETIME;
-        // Create direct checkout URL with Dodopayments
         const successUrl = `${FRONTEND_URL}/payment/success?plan=${plan}`;
         const cancelUrl = `${FRONTEND_URL}/payment/cancel`;
         const checkoutUrl = `https://checkout.dodopayments.com/buy/${productId}?` +
@@ -52,14 +44,10 @@ const createPaymentSession = async (req, res) => {
     }
 };
 exports.createPaymentSession = createPaymentSession;
-/**
- * Webhook Handler for Dodopayments
- */
 const handlePaymentWebhook = async (req, res) => {
     try {
         const event = req.body;
         console.log("📦 Webhook received:", JSON.stringify(event, null, 2));
-        // Dodopayments webhook events
         const eventType = event.event_type || event.type;
         switch (eventType) {
             case "payment.successful":
@@ -87,14 +75,8 @@ const handlePaymentWebhook = async (req, res) => {
     }
 };
 exports.handlePaymentWebhook = handlePaymentWebhook;
-/**
- * Handle Successful Payment
- * Automatically update user's plan in database when payment is completed
- * NO EMAIL SENDING - Just database update
- */
 async function handleSuccessfulPayment(event) {
     try {
-        // Extract data from webhook event
         const eventData = event.data || event;
         const metadata = eventData.metadata || {};
         const userId = metadata.userId;
@@ -109,42 +91,33 @@ async function handleSuccessfulPayment(event) {
             console.error(`❌ User not found: ${userId}`);
             return;
         }
-        // Update user's plan in database
         if (plan === 'yearly') {
             user.plan = 'yearly';
-            user.planExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
+            user.planExpiresAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
             console.log(`📅 Yearly plan expires: ${user.planExpiresAt}`);
         }
         else if (plan === 'lifetime') {
             user.plan = 'lifetime';
-            user.planExpiresAt = null; // No expiration for lifetime
+            user.planExpiresAt = null;
             console.log(`♾️ Lifetime plan - no expiration`);
         }
         await user.save();
         console.log(`✅ Database updated successfully for user: ${user.email} - Plan: ${plan}`);
-        // NOTE: No email sending as per user request
     }
     catch (error) {
         console.error("❌ Handle successful payment error:", error);
     }
 }
-/**
- * Handle Failed Payment
- */
 async function handleFailedPayment(event) {
     try {
         const { metadata } = event.data || event;
         const userId = metadata?.userId;
         console.log(`⚠️ Payment failed for user: ${userId}`);
-        // You can send email notification here
     }
     catch (error) {
         console.error("❌ Handle failed payment error:", error);
     }
 }
-/**
- * Handle Subscription Created
- */
 async function handleSubscriptionCreated(event) {
     try {
         const { metadata } = event.data || event;
@@ -155,9 +128,6 @@ async function handleSubscriptionCreated(event) {
         console.error("❌ Handle subscription created error:", error);
     }
 }
-/**
- * Handle Subscription Cancelled
- */
 async function handleSubscriptionCancelled(event) {
     try {
         const { metadata } = event.data || event;
@@ -167,7 +137,6 @@ async function handleSubscriptionCancelled(event) {
         const user = await User_1.default.findById(userId);
         if (!user)
             return;
-        // Revert to free plan
         user.plan = 'free';
         user.planExpiresAt = null;
         await user.save();
@@ -177,9 +146,6 @@ async function handleSubscriptionCancelled(event) {
         console.error("❌ Handle subscription cancelled error:", error);
     }
 }
-/**
- * Get User's Current Plan
- */
 const getCurrentPlan = async (req, res) => {
     try {
         const userId = req.body.userId || req.params.userId;

@@ -5,17 +5,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendOTPEmail = void 0;
 const nodemailer_1 = __importDefault(require("nodemailer"));
-// Create reusable transporter
 const createTransporter = () => {
     return nodemailer_1.default.createTransport({
         service: "gmail",
         auth: {
             user: process.env.MAIL_USER,
-            pass: process.env.MAIL_PASS // This should be your Gmail App Password
+            pass: process.env.MAIL_PASS
         }
     });
 };
-// Send OTP verification email
 const sendOTPEmail = async (email, otp) => {
     try {
         const transporter = createTransporter();
