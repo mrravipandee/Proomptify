@@ -4,8 +4,12 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FiCheckCircle, FiHome, FiZap } from 'react-icons/fi';
 import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function PaymentSuccessPage() {
+// Prevent static generation to avoid useSearchParams error
+export const dynamic = 'force-dynamic';
+
+function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const plan = searchParams.get('plan') || 'premium';
 
@@ -94,5 +98,17 @@ export default function PaymentSuccessPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#050520] text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }

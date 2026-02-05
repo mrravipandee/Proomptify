@@ -4,6 +4,9 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { FiXCircle, FiHome, FiRefreshCw } from 'react-icons/fi';
 
+// Prevent static generation for consistency
+export const dynamic = 'force-dynamic';
+
 export default function PaymentCancelPage() {
   return (
     <div className="min-h-screen bg-[#050520] text-white flex items-center justify-center py-12 px-4">
