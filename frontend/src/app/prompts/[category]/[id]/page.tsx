@@ -84,11 +84,11 @@ export default function PromptDetailPage() {
             await navigator.clipboard.writeText(prompt.promptText);
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error:', error);
             
             // Check if error is about usage limit
-            if (error.message && error.message.includes('limit')) {
+            if (error instanceof Error && error.message.includes('limit')) {
                 setShowLimitModal(true);
             }
         }
@@ -107,118 +107,133 @@ export default function PromptDetailPage() {
                     <span>Back to {category.charAt(0).toUpperCase() + category.slice(1)} prompts</span>
                 </Link>
 
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-7xl mx-auto">
                     
-                    {/* Hero Image */}
-                    {prompt.imgUrl && (
-                        <div className="relative w-full h-[400px] rounded-2xl overflow-hidden mb-8 border border-white/10">
-                            <Image 
-                                src={prompt.imgUrl}
-                                alt={prompt.title}
-                                fill
-                                className="object-cover"
-                            />
-                        </div>
-                    )}
-
-                    {/* Title and Stats */}
-                    <div className="mb-6">
-                        <h1 className="text-4xl font-bold mb-4">{prompt.title}</h1>
-                        <p className="text-xl text-gray-400 mb-6">{prompt.description}</p>
+                    {/* Two Column Layout */}
+                    <div className="flex flex-col lg:flex-row gap-8">
                         
-                        {/* Meta Info */}
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
-                            {prompt.usageCount && (
-                                <div className="flex items-center gap-2">
-                                    <TrendingUp size={16} />
-                                    <span>{prompt.usageCount.toLocaleString()} uses</span>
+                        {/* Left Side - Tall Vertical Image */}
+                        {prompt.imgUrl && (
+                            <div className="lg:w-[400px] flex-shrink-0">
+                                <div className="sticky top-24">
+                                    <div className="relative w-full aspect-[2/5] rounded-2xl overflow-hidden border border-white/10">
+                                        <Image 
+                                            src={prompt.imgUrl}
+                                            alt={prompt.title}
+                                            fill
+                                            className="object-cover"
+                                            priority
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Right Side - Content */}
+                        <div className="flex-1">
+
+                            {/* Title and Stats */}
+                            <div className="mb-6">
+                                <h1 className="text-4xl font-bold mb-4">{prompt.title}</h1>
+                                <p className="text-xl text-gray-400 mb-6">{prompt.description}</p>
+                                
+                                {/* Meta Info */}
+                                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400">
+                                    {prompt.usageCount && (
+                                        <div className="flex items-center gap-2">
+                                            <TrendingUp size={16} />
+                                            <span>{prompt.usageCount.toLocaleString()} uses</span>
+                                        </div>
+                                    )}
+                                    {prompt.estimatedTime && (
+                                        <div className="flex items-center gap-2">
+                                            <Clock size={16} />
+                                            <span>{prompt.estimatedTime}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Video Link Button */}
+                            {prompt.referenceUrl && (
+                                <div className="mb-8">
+                                    <a
+                                        href={prompt.referenceUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-colors"
+                                    >
+                                        <ExternalLink size={18} />
+                                        View Reference Video
+                                    </a>
                                 </div>
                             )}
-                            {prompt.estimatedTime && (
-                                <div className="flex items-center gap-2">
-                                    <Clock size={16} />
-                                    <span>{prompt.estimatedTime}</span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
 
-                    {/* Video Link Button */}
-                    {prompt.referenceUrl && (
-                        <div className="mb-8">
-                            <a
-                                href={prompt.referenceUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-colors"
-                            >
-                                <ExternalLink size={18} />
-                                View Reference Video
-                            </a>
-                        </div>
-                    )}
-
-                    {/* Tags */}
-                    <div className="mb-8">
-                        <h3 className="text-lg font-semibold mb-3">Tags</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {prompt.tags.map((tag, i) => (
-                                <span 
-                                    key={i} 
-                                    className="px-4 py-2 rounded-lg bg-white/10 text-gray-300 border border-white/10 text-sm font-medium"
-                                >
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Steps - Complete Instructions */}
-                    {prompt.completeSteps && prompt.completeSteps.length > 0 && (
-                        <div className="mb-8 bg-white/5 border border-white/10 rounded-2xl p-6">
-                            <h3 className="text-lg font-semibold mb-4">How to Use This Prompt</h3>
-                            <ol className="space-y-3">
-                                {prompt.completeSteps.map((step, i) => (
-                                    <li key={i} className="flex gap-4">
-                                        <span className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600/20 text-purple-400 border border-purple-500/30 flex items-center justify-center font-bold text-sm">
-                                            {i + 1}
+                            {/* Tags */}
+                            <div className="mb-8">
+                                <h3 className="text-lg font-semibold mb-3">Tags</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {prompt.tags.map((tag, i) => (
+                                        <span 
+                                            key={i} 
+                                            className="px-4 py-2 rounded-lg bg-white/10 text-gray-300 border border-white/10 text-sm font-medium"
+                                        >
+                                            {tag}
                                         </span>
-                                        <span className="text-gray-300 pt-1">{step}</span>
-                                    </li>
-                                ))}
-                            </ol>
-                        </div>
-                    )}
+                                    ))}
+                                </div>
+                            </div>
 
-                    {/* Prompt Text */}
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold">Prompt</h3>
-                            <button
-                                onClick={handleCopy}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                                    isCopied
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-white text-black hover:bg-gray-200'
-                                }`}
-                            >
-                                {isCopied ? (
-                                    <>
-                                        <Check size={16} />
-                                        Copied!
-                                    </>
-                                ) : (
-                                    <>
-                                        <Copy size={16} />
-                                        Copy
-                                    </>
-                                )}
-                            </button>
+                            {/* Steps - Complete Instructions */}
+                            {prompt.completeSteps && prompt.completeSteps.length > 0 && (
+                                <div className="mb-8 bg-white/5 border border-white/10 rounded-2xl p-6">
+                                    <h3 className="text-lg font-semibold mb-4">How to Use This Prompt</h3>
+                                    <ol className="space-y-3">
+                                        {prompt.completeSteps.map((step, i) => (
+                                            <li key={i} className="flex gap-4">
+                                                <span className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600/20 text-purple-400 border border-purple-500/30 flex items-center justify-center font-bold text-sm">
+                                                    {i + 1}
+                                                </span>
+                                                <span className="text-gray-300 pt-1">{step}</span>
+                                            </li>
+                                        ))}
+                                    </ol>
+                                </div>
+                            )}
+
+                            {/* Prompt Text */}
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold">Prompt</h3>
+                                    <button
+                                        onClick={handleCopy}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                                            isCopied
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-white text-black hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {isCopied ? (
+                                            <>
+                                                <Check size={16} />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy size={16} />
+                                                Copy
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                                <pre className="whitespace-pre-wrap font-mono text-sm text-gray-300 leading-relaxed bg-black/30 p-4 rounded-lg border border-white/5">
+                                    {prompt.promptText}
+                                </pre>
+                            </div>
                         </div>
-                        <pre className="whitespace-pre-wrap font-mono text-sm text-gray-300 leading-relaxed bg-black/30 p-4 rounded-lg border border-white/5">
-                            {prompt.promptText}
-                        </pre>
+                        {/* End Right Side */}
                     </div>
+                    {/* End Two Column Layout */}
                 </div>
             </div>
 

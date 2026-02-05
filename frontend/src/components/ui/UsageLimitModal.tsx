@@ -58,7 +58,7 @@ export default function UsageLimitModal({ isOpen, onClose }: UsageLimitModalProp
 
               {/* Message */}
               <p className="text-gray-200 text-center mb-6 leading-relaxed">
-                You've reached your free tier limit. Upgrade to Premium to unlock unlimited access to all prompts and features!
+                You&apos;ve reached your free tier limit. Upgrade to Premium to unlock unlimited access to all prompts and features!
               </p>
 
               {/* Benefits */}

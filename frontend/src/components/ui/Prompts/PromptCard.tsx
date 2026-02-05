@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Check, Clock, TrendingUp, ChevronRight, Lock } from 'lucide-react';
+import { Clock, TrendingUp, ChevronRight, Lock } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
+import UsageLimitModal from '../UsageLimitModal';
 import type { Prompt } from '@/types';
 
 // --- Internal Types ---
@@ -19,58 +21,66 @@ const PromptCard: React.FC<PromptProps> = ({
   title, 
   description, 
   tags, 
-  promptText,
   imgUrl,
   steps,
   category,
   estimatedTime,
-  usageCount,
-  onCopy 
+  usageCount
 }) => {
-  const [isCopied, setIsCopied] = useState(false);
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const router = useRouter();
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
-  const handleCardClick = (e: React.MouseEvent) => {
-    // If user is not logged in, prevent navigation and redirect to login
-    if (!user) {
-      e.preventDefault();
-      router.push('/login');
-      return;
-    }
-  };
-
-  const handleCopy = async (e: React.MouseEvent) => {
+  const handleCardClick = async (e: React.MouseEvent) => {
     e.preventDefault();
-    e.stopPropagation();
     
+    // If user is not logged in, redirect to login
     if (!user) {
       router.push('/login');
       return;
     }
-    
-    try {
-      await navigator.clipboard.writeText(promptText);
-      setIsCopied(true);
-      if (onCopy) onCopy();
-      setTimeout(() => setIsCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text: ', err);
+
+    // If user is logged in, track usage
+    if (user && token) {
+      try {
+        const response = await api.trackUsage(user.id, token);
+        
+        // Check if limit reached
+        if (!response.allowed || response.message === 'FREE_LIMIT_REACHED') {
+          setShowLimitModal(true);
+          return;
+        }
+
+        // If allowed, navigate to detail page
+        router.push(`/prompts/${category}/${id}`);
+      } catch (error: any) {
+        console.error('Usage tracking error:', error);
+        
+        // Check if error indicates limit reached
+        if (error.message && (error.message.includes('FREE_LIMIT_REACHED') || error.message.includes('403'))) {
+          setShowLimitModal(true);
+          return;
+        }
+        
+        // For other errors, still allow navigation (graceful degradation)
+        router.push(`/prompts/${category}/${id}`);
+      }
     }
   };
 
   return (
-    <Link href={user ? `/prompts/${category}/${id}` : '/login'} onClick={handleCardClick}>
-      <motion.div
-        whileHover={{ y: -5 }}
-        className="relative group w-full bg-white/5 border border-white/10 hover:border-purple-500/50 rounded-2xl overflow-hidden my-2 flex transition-all duration-300 h-[200px] cursor-pointer"
-      >
+    <>
+      <div onClick={handleCardClick}>
+        <motion.div
+          whileHover={{ y: -5 }}
+          className="relative group w-80 flex-shrink-0 bg-white/5 border border-white/10 hover:border-purple-500/50 rounded-2xl overflow-hidden my-2 flex flex-col transition-all duration-300 h-[420px] cursor-pointer"
+        >
         {/* Glow Effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
 
-        {/* Image Section - Left Side */}
+        {/* Image Section - Top */}
         {imgUrl && (
-          <div className="relative w-[280px] flex-shrink-0 overflow-hidden bg-white/5">
+          <div className="relative w-full h-48 overflow-hidden bg-white/5">
             <Image 
               src={imgUrl}
               alt={title}
@@ -94,8 +104,11 @@ const PromptCard: React.FC<PromptProps> = ({
           </div>
         )}
 
-        {/* Content Section - Right Side */}
+        {/* Content Section - Bottom */}
         <div className="relative z-10 p-5 flex flex-col flex-1">
+          {/* Title */}
+          <h3 className="text-white font-bold text-xl mb-3 line-clamp-2">{title}</h3>
+          
           {/* Tags */}
           <div className="flex flex-wrap gap-2 mb-3">
             {tags.slice(0, 3).map((tag, i) => (
@@ -105,7 +118,6 @@ const PromptCard: React.FC<PromptProps> = ({
             ))}
           </div>
           
-          <h3 className="text-white font-bold text-lg mb-2 line-clamp-1">{title}</h3>
           <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed mb-3">
             {description}
           </p>
@@ -113,10 +125,10 @@ const PromptCard: React.FC<PromptProps> = ({
           {/* Steps */}
           {steps && steps.length > 0 && (
             <div className="mb-3 flex items-center gap-1 text-xs text-gray-400 flex-wrap">
-              {steps.slice(0, 3).map((step, i) => (
+              {steps.slice(0, 2).map((step, i) => (
                 <div key={i} className="flex items-center">
                   <span className="text-purple-400 font-medium">{step}</span>
-                  {i < Math.min(steps.length, 3) - 1 && <ChevronRight size={12} className="mx-1" />}
+                  {i < Math.min(steps.length, 2) - 1 && <ChevronRight size={12} className="mx-1" />}
                 </div>
               ))}
             </div>
@@ -131,35 +143,17 @@ const PromptCard: React.FC<PromptProps> = ({
                 <span>{estimatedTime}</span>
               </div>
             )}
-
-            {/* Copy Button */}
-            <button
-              onClick={handleCopy}
-              className={`py-2 px-4 rounded-lg font-medium text-sm flex items-center gap-2 transition-all ${
-                isCopied
-                  ? 'bg-green-500 text-white'
-                  : user 
-                  ? 'bg-white text-black hover:bg-gray-200'
-                  : 'bg-white/10 text-gray-400 cursor-not-allowed'
-              }`}
-              disabled={!user}
-            >
-              {isCopied ? (
-                <>
-                  <Check size={14} />
-                  Copied
-                </>
-              ) : (
-                <>
-                  <Copy size={14} />
-                  Copy
-                </>
-              )}
-            </button>
           </div>
         </div>
       </motion.div>
-    </Link>
+      </div>
+
+      {/* Usage Limit Modal */}
+      <UsageLimitModal 
+        isOpen={showLimitModal} 
+        onClose={() => setShowLimitModal(false)} 
+      />
+    </>
   );
 };
 
