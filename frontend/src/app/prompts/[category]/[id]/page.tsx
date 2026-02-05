@@ -1,24 +1,55 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
-import { ArrowLeft, Copy, Check, ExternalLink, Clock, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Copy, Check, ExternalLink, Clock, TrendingUp, Lock } from 'lucide-react';
 import type { Prompt } from '@/types';
 import promptsData from '@/data/prompts.json';
+import { useAuth } from '@/contexts/AuthContext';
+import { api } from '@/lib/api';
+import UsageLimitModal from '@/components/ui/UsageLimitModal';
 
 export default function PromptDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const category = params.category as string;
     const id = params.id as string;
     
     const [isCopied, setIsCopied] = useState(false);
+    const [showLimitModal, setShowLimitModal] = useState(false);
+    const { user, token } = useAuth();
+
+    // Redirect to login if not authenticated
+    useEffect(() => {
+        if (!user) {
+            router.push('/login');
+        }
+    }, [user, router]);
 
     // Find the specific prompt
     const prompt = (promptsData.prompts as Prompt[]).find(
         (p) => p.id === id && p.category === category.toLowerCase()
     );
+
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-[#050520] text-white flex items-center justify-center">
+                <div className="text-center">
+                    <Lock size={64} className="mx-auto mb-4 text-purple-500" />
+                    <h1 className="text-4xl font-bold mb-4">Login Required</h1>
+                    <p className="text-gray-400 mb-6">Please login to view prompts</p>
+                    <Link 
+                        href="/login"
+                        className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors"
+                    >
+                        Go to Login
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     if (!prompt) {
         return (
@@ -34,12 +65,32 @@ export default function PromptDetailPage() {
     }
 
     const handleCopy = async () => {
+        if (!user || !token) {
+            router.push('/login');
+            return;
+        }
+
         try {
+            // Track usage first
+            const response = await api.trackUsage(user.id, token);
+            
+            // Check if limit reached
+            if (response.limitReached) {
+                setShowLimitModal(true);
+                return;
+            }
+
+            // If not limited, copy the prompt
             await navigator.clipboard.writeText(prompt.promptText);
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
-        } catch (err) {
-            console.error('Failed to copy text: ', err);
+        } catch (error: any) {
+            console.error('Error:', error);
+            
+            // Check if error is about usage limit
+            if (error.message && error.message.includes('limit')) {
+                setShowLimitModal(true);
+            }
         }
     };
 
@@ -170,6 +221,12 @@ export default function PromptDetailPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Usage Limit Modal */}
+            <UsageLimitModal 
+                isOpen={showLimitModal} 
+                onClose={() => setShowLimitModal(false)} 
+            />
         </div>
     );
 }

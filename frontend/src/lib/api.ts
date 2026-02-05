@@ -123,4 +123,22 @@ export const api = {
       handleFetchError(error);
     }
   },
+
+  // Track usage
+  trackUsage: async (userId: string, token: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/usage/track`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      return await handleResponse(response);
+    } catch (error) {
+      handleFetchError(error);
+    }
+  },
 };
