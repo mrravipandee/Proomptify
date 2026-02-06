@@ -72,15 +72,10 @@ export default function PromptDetailPage() {
 
         try {
             // Track usage first
-            const response = await api.trackUsage(user.id, token);
+            await api.trackUsage(user.id, token);
             
-            // Check if limit reached
-            if (response.limitReached) {
-                setShowLimitModal(true);
-                return;
-            }
-
-            // If not limited, copy the prompt
+            // Check if limit reached (backend returns error if limit reached)
+            // If we get here, limit not reached - copy the prompt
             await navigator.clipboard.writeText(prompt.promptText);
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);

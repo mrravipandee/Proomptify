@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, TrendingUp, ChevronRight, Lock } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -46,18 +45,18 @@ const PromptCard: React.FC<PromptProps> = ({
         const response = await api.trackUsage(user.id, token);
         
         // Check if limit reached
-        if (!response.allowed || response.message === 'FREE_LIMIT_REACHED') {
+        if (response.data.message === 'FREE_LIMIT_REACHED') {
           setShowLimitModal(true);
           return;
         }
 
         // If allowed, navigate to detail page
         router.push(`/prompts/${category}/${id}`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Usage tracking error:', error);
         
         // Check if error indicates limit reached
-        if (error.message && (error.message.includes('FREE_LIMIT_REACHED') || error.message.includes('403'))) {
+        if (error instanceof Error && error.message && (error.message.includes('FREE_LIMIT_REACHED') || error.message.includes('403'))) {
           setShowLimitModal(true);
           return;
         }

@@ -2,17 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/lib/api';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  instaHandle?: string;
-  gender?: 'male' | 'female' | 'other';
-  plan: 'free' | 'yearly' | 'lifetime';
-  isVerified: boolean;
-}
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +12,8 @@ interface AuthContextType {
   logout: () => void;
   setUser: (user: User) => void;
   setToken: (token: string) => void;
+  isAdmin: boolean;
+  isSuperAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +22,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Derived state for role checks
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  const isSuperAdmin = user?.role === 'super_admin';
 
   // Load user from localStorage on mount
   useEffect(() => {
@@ -55,6 +51,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await api.login(email, password);
+      
+      // Validate response has required fields
+      if (!response || !response.token || !response.user) {
+        throw new Error('Invalid response from server. Please try again.');
+      }
       
       setTokenState(response.token);
       setUser(response.user);
@@ -85,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         setUser,
         setToken,
+        isAdmin,
+        isSuperAdmin,
       }}
     >
       {children}
