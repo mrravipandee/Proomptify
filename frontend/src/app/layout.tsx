@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navigationbar from "@/components/layout/Navigationbar";
-import Footer from "@/components/layout/Footer";
+import ConditionalLayout from "@/components/layout/ConditionalLayout";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
@@ -134,11 +133,9 @@ export default function RootLayout({
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} bg-gradient-to-b from-gray-950 to-[#050520] min-h-screen text-white`}>
         <AuthProvider>
-          <Navigationbar />
-          <main className="">
+          <ConditionalLayout>
             {children}
-          </main>
-          <Footer />
+          </ConditionalLayout>
         </AuthProvider>
       </body>
     </html>
