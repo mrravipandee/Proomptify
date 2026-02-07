@@ -9,6 +9,8 @@ const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const usage_routes_1 = __importDefault(require("./routes/usage.routes"));
 const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
 const error_middleware_1 = require("./middlewares/error.middleware");
+const admin_prompt_routes_1 = __importDefault(require("./routes/admin.prompt.routes"));
+const prompts_routes_1 = __importDefault(require("./routes/prompts.routes"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
     origin: function (origin, callback) {
@@ -35,6 +37,8 @@ app.use(express_1.default.json());
 app.use("/api/auth", auth_routes_1.default);
 app.use("/api/usage", usage_routes_1.default);
 app.use("/api/payment", payment_routes_1.default);
+app.use("/api/admin/prompts", admin_prompt_routes_1.default);
+app.use("/api/prompts", prompts_routes_1.default);
 app.get("/", (_, res) => {
     res.send("Hello, World!");
 });

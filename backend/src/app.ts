@@ -4,6 +4,8 @@ import authRoutes from "./routes/auth.routes";
 import usageRoutes from "./routes/usage.routes";
 import paymentRoutes from "./routes/payment.routes";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
+import adminPromptRoutes from "./routes/admin.prompt.routes";
+import promptsRoutes from "./routes/prompts.routes";
 
 const app: Application = express();
 
@@ -37,6 +39,8 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/usage", usageRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/admin/prompts", adminPromptRoutes);
+app.use("/api/prompts", promptsRoutes);
 
 app.get("/", (_, res) => {
   res.send("Hello, World!");

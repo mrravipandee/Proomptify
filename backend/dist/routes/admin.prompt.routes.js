@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const admin_prompt_controller_1 = require("../controllers/admin.prompt.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const admin_middleware_1 = require("../middlewares/admin.middleware");
+const upload_middleware_1 = require("../middlewares/upload.middleware");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.protect, admin_middleware_1.isAdmin);
+router.post("/", auth_middleware_1.protect, admin_middleware_1.isAdmin, upload_middleware_1.upload.single("image"), admin_prompt_controller_1.createPrompt);
+router.get("/", admin_prompt_controller_1.getAllPromptsAdmin);
+router.put("/:id", admin_prompt_controller_1.updatePrompt);
+router.delete("/:id", admin_prompt_controller_1.deletePrompt);
+exports.default = router;
