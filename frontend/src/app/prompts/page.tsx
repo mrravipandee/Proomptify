@@ -13,8 +13,15 @@ interface CategoryWithPrompts {
   description: string;
   prompts: Prompt[];
   count: number;
-  cat: object;
 }
+
+type Category = {
+  _id: string;
+  name: string;
+  slug: string;
+  count?: number;
+};
+
 
 export default function PromptsPage() {
     const [activeCategory, setActiveCategory] = useState<CategoryId>('all');
@@ -53,7 +60,7 @@ export default function PromptsPage() {
                         };
                     })
                     // Filter only categories with prompts > 0
-                    .filter(cat => cat.count > 0);
+                    .filter((cat : Category) => (cat.count ?? 0) > 0);
 
                 setCategoriesWithPrompts(categoryData);
                 setError(null);
