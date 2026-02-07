@@ -6,35 +6,67 @@ import PromptSlider from '@/components/ui/Prompts/PromptSlider';
 import type { Prompt, CategoryId } from '@/types';
 import { api } from '@/lib/api';
 
+interface CategoryWithPrompts {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  prompts: Prompt[];
+  count: number;
+  cat: object;
+}
+
 export default function PromptsPage() {
     const [activeCategory, setActiveCategory] = useState<CategoryId>('all');
     const [allPrompts, setAllPrompts] = useState<Prompt[]>([]);
+    const [categoriesWithPrompts, setCategoriesWithPrompts] = useState<CategoryWithPrompts[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch prompts from API
+    // Fetch prompts and categories from API
     useEffect(() => {
-        const fetchPrompts = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
+                
+                // Fetch all prompts
                 const prompts = await api.getPrompts();
                 setAllPrompts(prompts);
+
+                // Fetch all categories (with high limit to get all)
+                const categoriesResponse = await api.getCategories(1, 100);
+                const categories = categoriesResponse.data || [];
+
+                // Build categories with their prompts
+                const categoryData: CategoryWithPrompts[] = categories
+                    .map((cat: { _id: string; name: string; slug: string; description?: string }) => {
+                        const categoryPrompts = prompts.filter(
+                            p => p.category === cat.slug
+                        );
+                        return {
+                            _id: cat._id,
+                            name: cat.name,
+                            slug: cat.slug as CategoryId,
+                            description: cat.description || '',
+                            prompts: categoryPrompts,
+                            count: categoryPrompts.length,
+                        };
+                    })
+                    // Filter only categories with prompts > 0
+                    .filter(cat => cat.count > 0);
+
+                setCategoriesWithPrompts(categoryData);
                 setError(null);
             } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to fetch prompts');
-                console.error('Error fetching prompts:', err);
+                setError(err instanceof Error ? err.message : 'Failed to fetch data');
+                console.error('Error fetching data:', err);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchPrompts();
+        fetchData();
     }, []);
-
-    // Get prompts by category for sliders
-    const getPromptsByCategory = (category: string): Prompt[] => {
-        return allPrompts.filter(prompt => prompt.category === category);
-    };
 
     return (
         <div className="min-h-screen bg-[#050520] text-white pb-20">
@@ -62,9 +94,9 @@ export default function PromptsPage() {
                 )}
 
                 {/* Prompts Content */}
-                {!loading && !error && (
+                {!loading && !error && categoriesWithPrompts.length > 0 && (
                     <>
-                        {/* 2. Featured Slider (Optional - Shows "Trending" at top) */}
+                        {/* 2. Featured Slider (Trending) */}
                         {activeCategory === 'all' && (
                             <section>
                                 <PromptSlider 
@@ -76,54 +108,42 @@ export default function PromptsPage() {
                             </section>
                         )}
 
-                        {/* 3. Instagram Slider */}
-                        {activeCategory === 'all' && (
-                            <section>
-                                <PromptSlider 
-                                    title="Instagram" 
-                                    description="Hooks, reels, and stories that convert"
-                                    prompts={getPromptsByCategory('instagram')}
-                                    categorySlug="instagram"
-                                />
-                            </section>
-                        )}
-
-                        {/* 4. YouTube Slider */}
-                        {activeCategory === 'all' && (
-                            <section>
-                                <PromptSlider 
-                                    title="YouTube" 
-                                    description="Scripts and thumbnails that get views"
-                                    prompts={getPromptsByCategory('youtube')}
-                                    categorySlug="youtube"
-                                />
-                            </section>
-                        )}
-
-                        {/* 5. LinkedIn Slider */}
-                        {activeCategory === 'all' && (
-                            <section>
-                                <PromptSlider 
-                                    title="LinkedIn" 
-                                    description="Professional content that builds authority"
-                                    prompts={getPromptsByCategory('linkedin')}
-                                    categorySlug="linkedin"
-                                />
-                            </section>
-                        )}
-
-                        {/* 6. AI Art Slider */}
-                        {activeCategory === 'all' && (
-                            <section>
-                                <PromptSlider 
-                                    title="AI Art" 
-                                    description="Stunning visuals with Midjourney & DALL-E"
-                                    prompts={getPromptsByCategory('aiart')}
-                                    categorySlug="aiart"
-                                />
-                            </section>
+                        {/* 3. Dynamic Category Sliders */}
+                        {activeCategory === 'all' ? (
+                            // Show all categories when "all" is selected
+                            categoriesWithPrompts.map((category) => (
+                                <section key={category._id}>
+                                    <PromptSlider 
+                                        title={category.name}
+                                        description={category.description}
+                                        prompts={category.prompts}
+                                        categorySlug={category.slug}
+                                    />
+                                </section>
+                            ))
+                        ) : (
+                            // Show only selected category
+                            categoriesWithPrompts
+                                .filter(cat => cat.slug === activeCategory)
+                                .map(category => (
+                                    <section key={category._id}>
+                                        <PromptSlider 
+                                            title={category.name}
+                                            description={category.description}
+                                            prompts={category.prompts}
+                                            categorySlug={category.slug}
+                                        />
+                                    </section>
+                                ))
                         )}
                     </>
+                )}
+
+                {/* No Prompts State */}
+                {!loading && !error && categoriesWithPrompts.length === 0 && (
+                    <div className="text-center py-20">
+                        <p className="text-gray-400 text-lg">No prompts available yet</p>
+                    </div>
                 )}
             </div>
         </div>

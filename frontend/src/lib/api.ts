@@ -198,6 +198,51 @@ export const api = {
       throw error instanceof Error ? error : new Error('An unexpected error occurred');
     }
   },
+
+  // ============================================
+  // CATEGORY APIs
+  // ============================================
+
+  // Get all categories (public)
+  getCategories: async (page: number = 1, limit: number = 10) => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/categories?page=${page}&limit=${limit}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      return await handleResponse(response);
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Cannot connect to server. Please start the backend server.');
+      }
+      throw error instanceof Error ? error : new Error('An unexpected error occurred');
+    }
+  },
+
+  // Get single category by ID (public)
+  getCategory: async (categoryId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return await handleResponse(response);
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Cannot connect to server. Please start the backend server.');
+      }
+      throw error instanceof Error ? error : new Error('An unexpected error occurred');
+    }
+  },
 };
 
 // ============================================
