@@ -124,14 +124,14 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} bg-gradient-to-b from-gray-950 to-[#050520] min-h-screen text-white`}>
+      <body suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} bg-gradient-to-b from-gray-950 to-[#050520] min-h-screen text-white`}>
         <AuthProvider>
           <ConditionalLayout>
             {children}
