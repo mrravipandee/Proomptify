@@ -3,7 +3,11 @@ import mongoose, { Schema, Document } from "mongoose";
 export interface IPrompt extends Document {
   title: string;
   description: string;
-  category: string;
+  category: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Category",
+    required: true,
+  }
   tags: string[];
   imgUrl: string;
   promptText: string;

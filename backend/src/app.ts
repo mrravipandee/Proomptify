@@ -6,6 +6,7 @@ import paymentRoutes from "./routes/payment.routes";
 import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 import adminPromptRoutes from "./routes/admin.prompt.routes";
 import promptsRoutes from "./routes/prompts.routes";
+import categoryRoutes from "./routes/category.routes";
 
 const app: Application = express();
 
@@ -41,6 +42,7 @@ app.use("/api/usage", usageRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/admin/prompts", adminPromptRoutes);
 app.use("/api/prompts", promptsRoutes);
+app.use("/api/categories", categoryRoutes);
 
 app.get("/", (_, res) => {
   res.send("Hello, World!");
