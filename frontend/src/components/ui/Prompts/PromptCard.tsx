@@ -44,24 +44,21 @@ const PromptCard: React.FC<PromptProps> = ({
       try {
         const response = await api.trackUsage(user.id, token);
         
-        // Check if limit reached
-        if (response.data.message === 'FREE_LIMIT_REACHED') {
-          setShowLimitModal(true);
-          return;
-        }
-
-        // If allowed, navigate to detail page
+        // If successful, navigate to detail page
         router.push(`/prompts/${category}/${id}`);
       } catch (error: unknown) {
-        console.error('Usage tracking error:', error);
-        
         // Check if error indicates limit reached
-        if (error instanceof Error && error.message && (error.message.includes('FREE_LIMIT_REACHED') || error.message.includes('403'))) {
-          setShowLimitModal(true);
-          return;
+        if (error instanceof Error && error.message) {
+          if (error.message.includes('FREE_LIMIT_REACHED') || 
+              error.message.includes('limit') || 
+              error.message.includes('403')) {
+            setShowLimitModal(true);
+            return;
+          }
         }
         
-        // For other errors, still allow navigation (graceful degradation)
+        // For other errors, log but still allow navigation (graceful degradation)
+        console.error('Usage tracking error:', error);
         router.push(`/prompts/${category}/${id}`);
       }
     }

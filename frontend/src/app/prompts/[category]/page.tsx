@@ -1,14 +1,16 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import PromptCard from '@/components/ui/Prompts/PromptCard';
 import type { Prompt } from '@/types';
-import promptsData from '@/data/prompts.json';
+import { api } from '@/lib/api';
 
 // Map category URL slugs to display names
 const CATEGORY_MAP: Record<string, string> = {
+    'all': 'All',
     'instagram': 'Instagram',
     'linkedin': 'LinkedIn',
     'youtube': 'YouTube',
@@ -24,14 +26,37 @@ export default function CategoryPage() {
     const params = useParams();
     const category = params.category as string;
     
+    const [allPrompts, setAllPrompts] = useState<Prompt[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    
     // Get category name
     const categoryName = CATEGORY_MAP[category.toLowerCase()] || 
         category.charAt(0).toUpperCase() + category.slice(1);
 
-    // Filter prompts based on category from JSON data with proper typing
-    const displayedPrompts = (promptsData.prompts as Prompt[]).filter(
-        (prompt) => prompt.category === category.toLowerCase()
-    );
+    // Fetch prompts from API
+    useEffect(() => {
+        const fetchPrompts = async () => {
+            try {
+                setLoading(true);
+                const prompts = await api.getPrompts();
+                setAllPrompts(prompts);
+                setError(null);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to fetch prompts');
+                console.error('Error fetching prompts:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPrompts();
+    }, []);
+
+    // Filter prompts based on category
+    const displayedPrompts = category.toLowerCase() === 'all' 
+        ? allPrompts 
+        : allPrompts.filter((prompt) => prompt.category === category.toLowerCase());
 
     return (
         <div className="min-h-screen bg-[#050520] text-white pb-20">
@@ -52,30 +77,46 @@ export default function CategoryPage() {
                         <h2 className="text-2xl font-bold flex items-center gap-2">
                             {categoryName} Prompts
                         </h2>
-                        <span className="text-gray-400 text-sm">{displayedPrompts.length} results</span>
+                        {!loading && <span className="text-gray-400 text-sm">{displayedPrompts.length} results</span>}
                     </div>
 
+                    {/* Loading State */}
+                    {loading && (
+                        <div className="flex justify-center items-center py-20">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+                        </div>
+                    )}
+
+                    {/* Error State */}
+                    {error && (
+                        <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 text-center">
+                            <p className="text-red-400">{error}</p>
+                        </div>
+                    )}
+
                     {/* The Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {displayedPrompts.length > 0 ? (
-                            displayedPrompts.map((prompt) => (
-                                <PromptCard 
-                                    key={prompt.id}
-                                    {...prompt}
-                                />
-                            ))
-                        ) : (
-                            <div className="col-span-full text-center py-20">
-                                <p className="text-gray-400 text-lg">No prompts found for this category.</p>
-                                <Link 
-                                    href="/prompts" 
-                                    className="text-purple-500 hover:text-purple-400 mt-4 inline-block"
-                                >
-                                    Browse all prompts
-                                </Link>
-                            </div>
-                        )}
-                    </div>
+                    {!loading && !error && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {displayedPrompts.length > 0 ? (
+                                displayedPrompts.map((prompt) => (
+                                    <PromptCard 
+                                        key={prompt.id}
+                                        {...prompt}
+                                    />
+                                ))
+                            ) : (
+                                <div className="col-span-full text-center py-20">
+                                    <p className="text-gray-400 text-lg">No prompts found for this category.</p>
+                                    <Link 
+                                        href="/prompts" 
+                                        className="text-purple-500 hover:text-purple-400 mt-4 inline-block"
+                                    >
+                                        Browse all prompts
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </section>
             </div>
         </div>

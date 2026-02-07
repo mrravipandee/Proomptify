@@ -74,18 +74,23 @@ export default function PromptDetailPage() {
             // Track usage first
             await api.trackUsage(user.id, token);
             
-            // Check if limit reached (backend returns error if limit reached)
             // If we get here, limit not reached - copy the prompt
             await navigator.clipboard.writeText(prompt.promptText);
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
         } catch (error: unknown) {
-            console.error('Error:', error);
-            
             // Check if error is about usage limit
-            if (error instanceof Error && error.message.includes('limit')) {
-                setShowLimitModal(true);
+            if (error instanceof Error && error.message) {
+                if (error.message.includes('FREE_LIMIT_REACHED') || 
+                    error.message.includes('limit') || 
+                    error.message.includes('403')) {
+                    setShowLimitModal(true);
+                    return;
+                }
             }
+            
+            // Log other errors
+            console.error('Error:', error);
         }
     };
 

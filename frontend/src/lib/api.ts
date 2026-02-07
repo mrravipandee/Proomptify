@@ -1,5 +1,5 @@
 // API base URL - adjust this based on your backend URL
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3500/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500/api';
 
 import {
   User,
@@ -166,6 +166,31 @@ export const api = {
       });
 
       return await handleResponse(response);
+    } catch (error) {
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('Cannot connect to server. Please start the backend server.');
+      }
+      throw error instanceof Error ? error : new Error('An unexpected error occurred');
+    }
+  },
+
+  // Get all prompts (public)
+  getPrompts: async (): Promise<Prompt[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/prompts`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await handleResponse(response);
+      
+      // Transform API response to match Prompt type (_id to id)
+      return data.map((prompt: { _id: string; [key: string]: unknown }) => ({
+        ...prompt,
+        id: prompt._id,
+      })) as Prompt[];
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('fetch')) {
         throw new Error('Cannot connect to server. Please start the backend server.');
