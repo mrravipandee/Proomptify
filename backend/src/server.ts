@@ -2,6 +2,8 @@ import "dotenv/config";
 import dotenv from "dotenv";
 import app from "./app";
 import { connectDB } from "./config/db";
+import { startSubscriptionChecker } from "./services/subscription.cron";
+
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +14,8 @@ const start = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+
+    startSubscriptionChecker();
     
     // Start server - bind to 0.0.0.0 for Render compatibility
     app.listen(PORT, () => {

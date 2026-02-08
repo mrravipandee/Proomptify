@@ -7,11 +7,13 @@ require("dotenv/config");
 const dotenv_1 = __importDefault(require("dotenv"));
 const app_1 = __importDefault(require("./app"));
 const db_1 = require("./config/db");
+const subscription_cron_1 = require("./services/subscription.cron");
 dotenv_1.default.config();
 const PORT = process.env.PORT || 5500;
 const start = async () => {
     try {
         await (0, db_1.connectDB)();
+        (0, subscription_cron_1.startSubscriptionChecker)();
         app_1.default.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
             console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);

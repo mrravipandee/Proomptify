@@ -8,9 +8,7 @@ const cloudinary_1 = __importDefault(require("../config/cloudinary"));
 const streamifier_1 = __importDefault(require("streamifier"));
 const uploadToCloudinary = (fileBuffer) => {
     return new Promise((resolve, reject) => {
-        const stream = cloudinary_1.default.uploader.upload_stream({
-            folder: "prompts",
-        }, (error, result) => {
+        const stream = cloudinary_1.default.uploader.upload_stream({ folder: "prompts" }, (error, result) => {
             if (error)
                 return reject(error);
             if (!result)

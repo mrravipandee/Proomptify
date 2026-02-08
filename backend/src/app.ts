@@ -10,7 +10,7 @@ import categoryRoutes from "./routes/category.routes";
 
 const app: Application = express();
 
-// cors middleware
+// CORS middleware
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -36,14 +36,30 @@ app.use(
   })
 );
 
+// ============================================
+// WEBHOOK ROUTE (MUST BE BEFORE JSON PARSER)
+// ============================================
+// Payment router with webhook using raw middleware
+// Must be mounted BEFORE express.json() so raw middleware works
+app.use("/api/payments", paymentRoutes);
+
+// ============================================
+// JSON PARSER (for all other routes)
+// ============================================
 app.use(express.json());
+
+// ============================================
+// ROUTES
+// ============================================
 app.use("/api/auth", authRoutes);
 app.use("/api/usage", usageRoutes);
-app.use("/api/payment", paymentRoutes);
 app.use("/api/admin/prompts", adminPromptRoutes);
 app.use("/api/prompts", promptsRoutes);
 app.use("/api/categories", categoryRoutes);
 
+// ============================================
+// HEALTH CHECKS
+// ============================================
 app.get("/", (_, res) => {
   res.send("Hello, World!");
 });
@@ -52,7 +68,9 @@ app.get("/health", (_, res) => {
   res.json({ status: "OK" });
 });
 
-// Error handling - must be AFTER all routes
+// ============================================
+// ERROR HANDLING (MUST BE LAST)
+// ============================================
 app.use(notFoundHandler);
 app.use(errorHandler);
 
