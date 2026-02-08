@@ -12,6 +12,7 @@ const error_middleware_1 = require("./middlewares/error.middleware");
 const admin_prompt_routes_1 = __importDefault(require("./routes/admin.prompt.routes"));
 const prompts_routes_1 = __importDefault(require("./routes/prompts.routes"));
 const category_routes_1 = __importDefault(require("./routes/category.routes"));
+const env_1 = require("./config/env");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
     origin: function (origin, callback) {
@@ -21,7 +22,9 @@ app.use((0, cors_1.default)({
             "http://localhost:3000",
             "http://localhost:5000",
             "https://proomptify.shop",
-            "https://proomptify.vercel.app"
+            "https://www.proomptify.shop",
+            "https://proomptify.vercel.app",
+            env_1.config.urls.frontend
         ];
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);

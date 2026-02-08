@@ -7,6 +7,7 @@ import { errorHandler, notFoundHandler } from "./middlewares/error.middleware";
 import adminPromptRoutes from "./routes/admin.prompt.routes";
 import promptsRoutes from "./routes/prompts.routes";
 import categoryRoutes from "./routes/category.routes";
+import { config } from "./config/env";
 
 const app: Application = express();
 
@@ -21,7 +22,9 @@ app.use(
         "http://localhost:3000",
         "http://localhost:5000",
         "https://proomptify.shop",
-        "https://proomptify.vercel.app"
+        "https://www.proomptify.shop",
+        "https://proomptify.vercel.app",
+        config.urls.frontend // Add environment-based frontend URL
       ];
       
       if (allowedOrigins.indexOf(origin) !== -1) {
