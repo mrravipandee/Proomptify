@@ -42,7 +42,7 @@ const PromptCard: React.FC<PromptProps> = ({
     // If user is logged in, track usage
     if (user && token) {
       try {
-        const response = await api.trackUsage(user.id, token);
+        const response = await api.trackUsage(id);
         
         // If successful, navigate to detail page
         router.push(`/prompts/${category}/${id}`);

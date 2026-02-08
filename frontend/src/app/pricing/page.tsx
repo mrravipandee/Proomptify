@@ -6,6 +6,7 @@ import { FiCheck, FiZap, FiStar, FiTrendingUp, FiShield, FiClock } from 'react-i
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import BuyButton from '@/components/ui/BuyButton';
 
 const pricingPlans = [
   {
@@ -84,11 +85,17 @@ const benefits = [
 ];
 
 export default function PricingPage() {
-  const { user, token } = useAuth();
+  const { user, token, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleUpgrade = async (planType: string) => {
+    // Wait for auth to be ready
+    if (authLoading) {
+      alert('Please wait while we load your account...');
+      return;
+    }
+
     if (!user) {
       router.push('/login');
       return;
@@ -104,8 +111,8 @@ export default function PricingPage() {
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5500/api';
       console.log('Creating payment session for:', { planType, userId: user.id });
-      
-      const response = await fetch(`${API_URL}/payment/create-session`, {
+
+      const response = await fetch(`${API_URL}/payments/create-session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -140,6 +147,34 @@ export default function PricingPage() {
     }
   };
 
+  // Show loading spinner while auth initializes
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#050520] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block">
+            <div className="w-12 h-12 border-4 border-purple-600 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+          </div>
+          <p className="text-gray-400">Loading pricing plans...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading spinner while auth initializes
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#050520] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block">
+            <div className="w-12 h-12 border-4 border-purple-600 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+          </div>
+          <p className="text-gray-400">Loading pricing plans...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#050520] text-white pt-24 pb-20">
       {/* Header */}
@@ -167,11 +202,10 @@ export default function PricingPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className={`relative rounded-3xl p-8 ${
-                plan.popular
+              className={`relative rounded-3xl p-8 ${plan.popular
                   ? 'bg-gradient-to-br from-purple-900/50 to-blue-900/50 border-2 border-purple-500 shadow-2xl shadow-purple-500/20 scale-105'
                   : 'bg-white/5 border border-white/10'
-              }`}
+                }`}
             >
               {/* Popular Badge */}
               {plan.popular && (
@@ -208,17 +242,20 @@ export default function PricingPage() {
               </ul>
 
               {/* CTA Button */}
-              <button
-                onClick={() => handleUpgrade(plan.name.toLowerCase())}
-                disabled={loading === plan.name.toLowerCase()}
-                className={`block w-full text-center py-4 rounded-xl font-semibold transition-all duration-300 ${
-                  plan.popular
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg shadow-purple-500/30'
-                    : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-              >
-                {loading === plan.name.toLowerCase() ? 'Processing...' : plan.cta}
-              </button>
+              {plan.name.toLowerCase() === 'free' ? (
+                <button
+                  onClick={() => handleUpgrade(plan.name.toLowerCase())}
+                  disabled={loading === plan.name.toLowerCase()}
+                  className={`block w-full text-center py-4 rounded-xl font-semibold transition-all duration-300 ${plan.popular
+                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg shadow-purple-500/30'
+                      : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {loading === plan.name.toLowerCase() ? 'Processing...' : plan.cta}
+                </button>
+              ) : (
+                <BuyButton plan={plan.name.toLowerCase() as 'yearly' | 'lifetime'} />
+              )}
             </motion.div>
           ))}
         </div>

@@ -8,6 +8,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  initialized: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   setUser: (user: User) => void;
@@ -21,26 +22,42 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setTokenState] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   // Derived state for role checks
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
   const isSuperAdmin = user?.role === 'super_admin';
 
-  // Load user from localStorage on mount
+  /**
+   * Initialize auth from localStorage on client-side only
+   * This prevents hydration mismatches by not accessing localStorage during SSR
+   */
   useEffect(() => {
-    const loadUser = () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+    // Mark that we've started initialization
+    const initializeAuth = () => {
+      try {
+        // Only access localStorage on client side
+        const storedToken = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
 
-      if (storedToken && storedUser) {
-        setTokenState(storedToken);
-        setUser(JSON.parse(storedUser));
+        if (storedToken && storedUser) {
+          setTokenState(storedToken);
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error('Failed to initialize auth from localStorage:', error);
+        // Clear corrupted data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      } finally {
+        // Mark as initialized regardless of success/failure
+        // This ensures UI renders even if localStorage is unavailable
+        setInitialized(true);
       }
-      setLoading(false);
     };
-    
-    loadUser();
+
+    initializeAuth();
   }, []);
 
   const setToken = (newToken: string) => {
@@ -50,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const response = await api.login(email, password);
       
       // Validate response has required fields
@@ -65,6 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('user', JSON.stringify(response.user));
     } catch (error) {
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,12 +96,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = '/';
   };
 
+  // Don't render children until client-side initialization is complete
+  // This prevents hydration mismatches
+  if (!initialized) {
+    return null;
+  }
+
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
         loading,
+        initialized,
         login,
         logout,
         setUser,

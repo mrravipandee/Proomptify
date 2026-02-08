@@ -72,7 +72,7 @@ export default function PromptDetailPage() {
 
         try {
             // Track usage first
-            await api.trackUsage(user.id, token);
+            await api.trackUsage(id);
             
             // If we get here, limit not reached - copy the prompt
             await navigator.clipboard.writeText(prompt.promptText);

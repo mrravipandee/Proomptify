@@ -6,6 +6,13 @@ import PromptSlider from '@/components/ui/Prompts/PromptSlider';
 import type { Prompt, CategoryId } from '@/types';
 import { api } from '@/lib/api';
 
+interface CategoryApiResponse {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
 interface CategoryWithPrompts {
   _id: string;
   name: string;
@@ -22,6 +29,15 @@ type Category = {
   count?: number;
 };
 
+interface FetchDataResponse {
+  prompts: Prompt[];
+  categories: CategoryWithPrompts[];
+}
+
+interface CategoriesApiResponse {
+  data: CategoryApiResponse[];
+}
+
 
 export default function PromptsPage() {
     const [activeCategory, setActiveCategory] = useState<CategoryId>('all');
@@ -37,18 +53,18 @@ export default function PromptsPage() {
                 setLoading(true);
                 
                 // Fetch all prompts
-                const prompts = await api.getPrompts();
+                const prompts: Prompt[] = await api.getPrompts();
                 setAllPrompts(prompts);
 
                 // Fetch all categories (with high limit to get all)
-                const categoriesResponse = await api.getCategories(1, 100);
-                const categories = categoriesResponse.data || [];
+                const categoriesResponse: CategoriesApiResponse = await api.getCategories(1, 100);
+                const categories: CategoryApiResponse[] = categoriesResponse.data || [];
 
                 // Build categories with their prompts
                 const categoryData: CategoryWithPrompts[] = categories
-                    .map((cat: { _id: string; name: string; slug: string; description?: string }) => {
-                        const categoryPrompts = prompts.filter(
-                            p => p.category === cat.slug
+                    .map((cat: CategoryApiResponse) => {
+                        const categoryPrompts: Prompt[] = prompts.filter(
+                            (p: Prompt) => p.category === cat.slug
                         );
                         return {
                             _id: cat._id,
