@@ -44,12 +44,18 @@ app.use(
 // ============================================
 // Payment router with webhook using raw middleware
 // Must be mounted BEFORE express.json() so raw middleware works
-app.use("/api/payments", paymentRoutes);
 
-// ============================================
-// JSON PARSER (for all other routes)
-// ============================================
+// Webhook needs raw body
+app.use(
+  "/api/payments/webhook",
+  express.raw({ type: "*/*" })
+);
+
+// Normal JSON parser for other routes
 app.use(express.json());
+
+// Now mount routes
+app.use("/api/payments", paymentRoutes);
 
 // ============================================
 // ROUTES

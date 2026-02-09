@@ -14,11 +14,7 @@ const router = express.Router();
  * Signature verification happens inside controller
  * Always returns 200 to prevent provider retries
  */
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  handlePaymentWebhook
-);
+router.post("/webhook", handlePaymentWebhook);
 
 /**
  * PROTECTED ROUTES - Require valid JWT
