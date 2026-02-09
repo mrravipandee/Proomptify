@@ -8,7 +8,7 @@ import { startSubscriptionChecker } from "./services/subscription.cron";
 // Load environment variables
 dotenv.config();
 
-const PORT = process.env.PORT || 5500;
+const PORT = process.env.PORT || 5000;
 
 const start = async () => {
   try {
