@@ -19,9 +19,14 @@ router.post(
 );
 
 /**
+ * Parse JSON for non-webhook routes in this router only.
+ * Keep this AFTER the raw webhook route above.
+ */
+router.use(express.json());
+
+/**
  * PROTECTED ROUTES
  */
-
 router.post("/create-session", protect, createPaymentSession);
 router.get("/plan/me", protect, getCurrentPlan);
 router.get("/plan/:userId", protect, getCurrentPlan);

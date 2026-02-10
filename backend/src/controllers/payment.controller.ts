@@ -1,14 +1,14 @@
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import User from "../models/User";
-
+import { config } from "../config/env";
 /* ---------------- TYPES ---------------- */
 
 type Plan = "free" | "yearly" | "lifetime";
 
 /* ---------------- CONFIG ---------------- */
 
-const FRONTEND_URL = process.env.FRONTEND_URL!;
+const FRONTEND_URL = config.urls.frontend;
 
 const YEARLY_PRODUCT = process.env.DODOPAYMENTS_YEARLY_PRODUCT_ID!;
 const LIFETIME_PRODUCT = process.env.DODOPAYMENTS_LIFETIME_PRODUCT_ID!;
@@ -40,7 +40,7 @@ export const createPaymentSession = async (
     const productId = plan === "yearly" ? YEARLY_PRODUCT : LIFETIME_PRODUCT;
 
     const successUrl = `${FRONTEND_URL}/payment/success`;
-    const cancelUrl = `${FRONTEND_URL}/pricing`;
+    const cancelUrl = `${FRONTEND_URL}/payment/cancel`;
 
     const checkoutUrl =
       `https://checkout.dodopayments.com/buy/${productId}?` +
@@ -48,11 +48,13 @@ export const createPaymentSession = async (
       `&success_url=${encodeURIComponent(successUrl)}` +
       `&cancel_url=${encodeURIComponent(cancelUrl)}` +
       `&customer_email=${encodeURIComponent(user.email)}` +
-      `&customer_name=${encodeURIComponent(user.name)}`;
+      `&customer_name=${encodeURIComponent(user.name)}` +
+      `&metadata_user_id=${encodeURIComponent(user.id)}` +
+      `&metadata_plan=${encodeURIComponent(plan)}`;
 
     console.log("Checkout URL:", checkoutUrl);
 
-    res.json({ checkoutUrl });
+    res.json({ paymentUrl: checkoutUrl });
   } catch (err) {
     console.error("Create session error:", err);
     res.status(500).json({ message: "Failed to create session" });
