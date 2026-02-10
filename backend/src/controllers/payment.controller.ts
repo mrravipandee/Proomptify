@@ -10,8 +10,8 @@ type Plan = "free" | "yearly" | "lifetime";
 
 const FRONTEND_URL = config.urls.frontend;
 
-const YEARLY_PRODUCT = process.env.DODOPAYMENTS_YEARLY_PRODUCT_ID!;
-const LIFETIME_PRODUCT = process.env.DODOPAYMENTS_LIFETIME_PRODUCT_ID!;
+const YEARLY_PRODUCT = (process.env.DODOPAYMENTS_YEARLY_PRODUCT_ID || "").trim();
+const LIFETIME_PRODUCT = (process.env.DODOPAYMENTS_LIFETIME_PRODUCT_ID || "").trim();
 
 /* =========================================================
    CREATE CHECKOUT SESSION
@@ -42,15 +42,18 @@ export const createPaymentSession = async (
     const successUrl = `${FRONTEND_URL}/payment/success`;
     const cancelUrl = `${FRONTEND_URL}/payment/cancel`;
 
-    const checkoutUrl =
-      `https://checkout.dodopayments.com/buy/${productId}?` +
-      `quantity=1` +
-      `&success_url=${encodeURIComponent(successUrl)}` +
-      `&cancel_url=${encodeURIComponent(cancelUrl)}` +
-      `&customer_email=${encodeURIComponent(user.email)}` +
-      `&customer_name=${encodeURIComponent(user.name)}` +
-      `&metadata_user_id=${encodeURIComponent(user.id)}` +
-      `&metadata_plan=${encodeURIComponent(plan)}`;
+    const params = new URLSearchParams({
+      productId: (productId || "").trim(),
+      quantity: "1",
+      customer_email: user.email,
+      customer_name: user.name,
+      metadata_user_id: user.id,
+      metadata_plan: plan,
+    });
+    // Optionally include redirect URLs (ignored by static checkout if unsupported)
+    params.set("success_url", successUrl);
+    params.set("cancel_url", cancelUrl);
+    const checkoutUrl = `https://checkout.dodopayments.com/buy?${params.toString()}`;
 
     console.log("Checkout URL:", checkoutUrl);
 
