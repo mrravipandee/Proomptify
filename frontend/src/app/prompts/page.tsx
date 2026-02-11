@@ -53,7 +53,16 @@ export default function PromptsPage() {
                 setLoading(true);
                 
                 // Fetch all prompts
-                const prompts: Prompt[] = await api.getPrompts();
+                const promptsResponse = await api.getPrompts();
+                const prompts: Prompt[] = (promptsResponse.data || promptsResponse || []).map((prompt: Prompt) => ({
+                  ...prompt,
+                  id: prompt._id, // Map MongoDB _id to id
+                  tags: Array.isArray(prompt.tags) 
+                    ? prompt.tags 
+                    : typeof prompt.tags === 'string' 
+                      ? JSON.parse(prompt.tags) 
+                      : [], // Ensure tags is always an array
+                }));
                 setAllPrompts(prompts);
 
                 // Fetch all categories (with high limit to get all)

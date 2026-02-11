@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   LayoutDashboard, 
   Users, 
@@ -13,7 +14,8 @@ import {
   LogOut,
   X,
   Sparkles,
-  Zap
+  Zap,
+  Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
@@ -27,13 +29,18 @@ const mainNav = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Users', href: '/dashboard/users', icon: Users },
   { name: 'Prompts', href: '/dashboard/prompts', icon: FileText },
-  { name: 'Categories', href: '/dashboard/category', icon: Layers }, // Fixed route to singular if needed
+  { name: 'Categories', href: '/dashboard/category', icon: Layers },
   { name: 'Blog CMS', href: '/dashboard/blog', icon: BookOpen },
 ];
 
 const systemNav = [
   { name: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+];
+
+const adminNav = [
+  { name: 'Manage Prompts', href: '/dashboard/admin/prompts', icon: Shield },
+  { name: 'Analytics', href: '/dashboard/admin/analytics', icon: LayoutDashboard },
 ];
 
 interface NavItemType {
@@ -44,6 +51,7 @@ interface NavItemType {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user, isAdmin, logout } = useAuth();
 
   const NavItem = ({ item }: { item: NavItemType }) => {
     const isActive = pathname === item.href;
@@ -121,6 +129,21 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 </div>
             </div>
 
+            {/* Admin Group - Only show for admin users */}
+            {isAdmin && (
+              <div>
+                <h3 className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-3 px-2 flex items-center gap-2">
+                  <Shield size={14} />
+                  Admin Panel
+                </h3>
+                <div className="space-y-1">
+                    {adminNav.map((item) => (
+                        <NavItem key={item.href} item={item} />
+                    ))}
+                </div>
+              </div>
+            )}
+
             {/* System Group */}
             <div>
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 px-2">System</h3>
@@ -136,6 +159,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Bottom Section: Upgrade Card & Logout */}
         <div className="p-4 border-t border-white/5 space-y-4">
             
+            {/* User Info */}
+            {user && (
+              <div className="px-3 py-3 bg-white/5 rounded-lg border border-white/10">
+                <p className="text-xs text-gray-500">Logged in as</p>
+                <p className="text-sm font-semibold text-white truncate">{user.email}</p>
+                {isAdmin && (
+                  <p className="text-xs text-purple-400 mt-1">👑 Admin Access</p>
+                )}
+              </div>
+            )}
+
             {/* Upgrade Card */}
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600/10 to-blue-600/10 border border-purple-500/20 p-4">
                 <div className="absolute -top-6 -right-6 w-20 h-20 bg-purple-500/20 rounded-full blur-xl" />
@@ -155,7 +189,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
 
             {/* Logout */}
-            <button className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/5 rounded-xl transition-colors group">
+            <button 
+              onClick={logout}
+              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/5 rounded-xl transition-colors group"
+            >
                 <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" />
                 Sign Out
             </button>

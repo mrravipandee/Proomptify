@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Copy, Check, ExternalLink, Clock, TrendingUp, Lock } from 'lucide-react';
 import type { Prompt } from '@/types';
-import promptsData from '@/data/prompts.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import UsageLimitModal from '@/components/ui/UsageLimitModal';
@@ -19,6 +18,9 @@ export default function PromptDetailPage() {
     
     const [isCopied, setIsCopied] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
+    const [prompt, setPrompt] = useState<Prompt | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const { user, token } = useAuth();
 
     // Redirect to login if not authenticated
@@ -28,10 +30,37 @@ export default function PromptDetailPage() {
         }
     }, [user, router]);
 
-    // Find the specific prompt
-    const prompt = (promptsData.prompts as Prompt[]).find(
-        (p) => p.id === id && p.category === category.toLowerCase()
-    );
+    // Fetch the specific prompt from API
+    useEffect(() => {
+        const fetchPrompt = async () => {
+            try {
+                setLoading(true);
+                const response = await api.getSinglePrompt(id);
+                // Handle response structure - could be direct object or wrapped in data property
+                const promptData = response.data || response;
+                const mappedPrompt = {
+                    ...promptData,
+                    id: promptData._id || promptData.id,
+                    tags: Array.isArray(promptData.tags) 
+                        ? promptData.tags 
+                        : typeof promptData.tags === 'string' 
+                            ? JSON.parse(promptData.tags) 
+                            : [],
+                };
+                setPrompt(mappedPrompt);
+                setError(null);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to fetch prompt');
+                console.error('Error fetching prompt:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchPrompt();
+        }
+    }, [id]);
 
     if (!user) {
         return (
@@ -51,11 +80,23 @@ export default function PromptDetailPage() {
         );
     }
 
-    if (!prompt) {
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#050520] text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading prompt...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error || !prompt) {
         return (
             <div className="min-h-screen bg-[#050520] text-white flex items-center justify-center">
                 <div className="text-center">
                     <h1 className="text-4xl font-bold mb-4">Prompt Not Found</h1>
+                    <p className="text-gray-400 mb-6">{error || 'The prompt you are looking for does not exist.'}</p>
                     <Link href="/prompts" className="text-purple-500 hover:text-purple-400">
                         ← Back to Prompts
                     </Link>
@@ -170,19 +211,21 @@ export default function PromptDetailPage() {
                             )}
 
                             {/* Tags */}
-                            <div className="mb-8">
-                                <h3 className="text-lg font-semibold mb-3">Tags</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {prompt.tags.map((tag, i) => (
-                                        <span 
-                                            key={i} 
-                                            className="px-4 py-2 rounded-lg bg-white/10 text-gray-300 border border-white/10 text-sm font-medium"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
+                            {prompt.tags && prompt.tags.length > 0 && (
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-semibold mb-3">Tags</h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {prompt.tags.map((tag, i) => (
+                                            <span 
+                                                key={i} 
+                                                className="px-4 py-2 rounded-lg bg-white/10 text-gray-300 border border-white/10 text-sm font-medium"
+                                            >
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Steps - Complete Instructions */}
                             {prompt.completeSteps && prompt.completeSteps.length > 0 && (

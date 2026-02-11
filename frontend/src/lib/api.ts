@@ -239,4 +239,96 @@ export const api = {
   async getMyPlan() {
     return fetchWithAuth("/payments/plan/me");
   },
+
+  // =======================================================
+  // ADMIN PROMPTS MANAGEMENT
+  // =======================================================
+
+  /**
+   * Create a new prompt (Admin only)
+   * Requires: Authentication + Admin role
+   */
+  async createPrompt(payload: {
+    title: string;
+    description: string;
+    category: string;
+    tags: string[];
+    promptText: string;
+    steps?: string[];
+    completeSteps?: string[];
+    estimatedTime?: string;
+    referenceUrl?: string;
+  }) {
+    return fetchWithAuth("/admin/prompts", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * Create a prompt with image upload (Admin only)
+   * Use FormData for file upload
+   */
+  async createPromptWithImage(formData: FormData) {
+    const token = getToken();
+    const headers: Record<string, string> = {};
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/admin/prompts`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    return handleResponse(response);
+  },
+
+  /**
+   * Get all prompts (Admin view with all details)
+   */
+  async getAdminPrompts(page = 1, limit = 20) {
+    return fetchWithAuth(
+      `/admin/prompts?page=${page}&limit=${limit}`
+    );
+  },
+
+  /**
+   * Update a prompt (Admin only)
+   */
+  async updatePrompt(id: string, payload: Partial<{
+    title: string;
+    description: string;
+    category: string;
+    tags: string[];
+    promptText: string;
+    steps: string[];
+    completeSteps: string[];
+    estimatedTime: string;
+    referenceUrl: string;
+    imgUrl: string;
+  }>) {
+    return fetchWithAuth(`/admin/prompts/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * Delete a prompt (Admin only)
+   */
+  async deletePrompt(id: string) {
+    return fetchWithAuth(`/admin/prompts/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  /**
+   * Get admin dashboard stats
+   */
+  async getAdminStats() {
+    return fetchWithAuth("/admin/stats");
+  },
 };

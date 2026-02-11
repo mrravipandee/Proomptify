@@ -39,7 +39,16 @@ export default function CategoryPage() {
         const fetchPrompts = async () => {
             try {
                 setLoading(true);
-                const prompts = await api.getPrompts();
+                const promptsResponse: any = await api.getPrompts();
+                const prompts = (promptsResponse.data || promptsResponse || []).map((prompt: any) => ({
+                  ...prompt,
+                  id: prompt._id || prompt.id,
+                  tags: Array.isArray(prompt.tags) 
+                    ? prompt.tags 
+                    : typeof prompt.tags === 'string' 
+                      ? JSON.parse(prompt.tags) 
+                      : [],
+                }));
                 setAllPrompts(prompts);
                 setError(null);
             } catch (err) {

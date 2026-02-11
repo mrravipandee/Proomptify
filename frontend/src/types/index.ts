@@ -27,7 +27,7 @@ export interface Category {
 }
 
 export interface Prompt {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   tags: string[];

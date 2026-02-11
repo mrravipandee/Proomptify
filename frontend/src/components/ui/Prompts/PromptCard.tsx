@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Clock, TrendingUp, ChevronRight, Lock } from 'lucide-react';
 import Image from 'next/image';
@@ -11,12 +11,13 @@ import UsageLimitModal from '../UsageLimitModal';
 import type { Prompt } from '@/types';
 
 // --- Internal Types ---
-export interface PromptProps extends Omit<Prompt, 'referenceUrl'> {
-  onCopy?: () => void; // Optional callback when copied
+export interface PromptProps extends Omit<Prompt, 'referenceUrl' | 'tags'> {
+  tags: string | string[]; 
+  onCopy?: () => void;
 }
 
 const PromptCard: React.FC<PromptProps> = ({ 
-  id,
+  _id,
   title, 
   description, 
   tags, 
@@ -30,25 +31,45 @@ const PromptCard: React.FC<PromptProps> = ({
   const router = useRouter();
   const [showLimitModal, setShowLimitModal] = useState(false);
 
+  // Helper to safely parse and clean tags
+  const cleanTags = useMemo((): string[] => {
+    if (!tags) return [];
+
+    let parsed: string[] = [];
+
+    if (Array.isArray(tags)) {
+      parsed = tags;
+    } else if (typeof tags === 'string') {
+      try {
+        const result = JSON.parse(tags);
+        if (Array.isArray(result)) {
+          parsed = result;
+        } else {
+          parsed = [String(result)];
+        }
+      } catch {
+        const cleaned = tags.replace(/[\[\]"']/g, ''); 
+        parsed = cleaned.split(',').map((t) => t.trim()).filter(Boolean);
+      }
+    }
+
+    return parsed;
+  }, [tags]);
+
   const handleCardClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // If user is not logged in, redirect to login
     if (!user) {
       router.push('/login');
       return;
     }
 
-    // If user is logged in, track usage
     if (user && token) {
       try {
-        const response = await api.trackUsage(id);
-        
-        // If successful, navigate to detail page
-        router.push(`/prompts/${category}/${id}`);
+        await api.trackUsage(_id);
+        router.push(`/prompts/${category}/${_id}`);
       } catch (error: unknown) {
-        // Check if error indicates limit reached
-        if (error instanceof Error && error.message) {
+        if (error instanceof Error) {
           if (error.message.includes('FREE_LIMIT_REACHED') || 
               error.message.includes('limit') || 
               error.message.includes('403')) {
@@ -56,10 +77,8 @@ const PromptCard: React.FC<PromptProps> = ({
             return;
           }
         }
-        
-        // For other errors, log but still allow navigation (graceful degradation)
         console.error('Usage tracking error:', error);
-        router.push(`/prompts/${category}/${id}`);
+        router.push(`/prompts/${category}/${_id}`);
       }
     }
   };
@@ -83,15 +102,13 @@ const PromptCard: React.FC<PromptProps> = ({
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-110"
             />
-            {/* Usage Count */}
-            {usageCount && (
+            {usageCount !== undefined && (
               <div className="absolute bottom-3 left-3 px-2 py-1 rounded-lg text-[10px] font-medium bg-black/60 text-white backdrop-blur-sm flex items-center gap-1">
                 <TrendingUp size={12} />
                 {usageCount.toLocaleString()} uses
               </div>
             )}
             
-            {/* Lock overlay for non-logged in users */}
             {!user && (
               <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center">
                 <Lock size={32} className="text-white/80" />
@@ -105,13 +122,30 @@ const PromptCard: React.FC<PromptProps> = ({
           {/* Title */}
           <h3 className="text-white font-bold text-xl mb-3 line-clamp-2">{title}</h3>
           
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 mb-3">
-            {tags.slice(0, 3).map((tag, i) => (
-              <span key={i} className="text-[10px] uppercase font-bold px-2 py-1 rounded bg-white/10 text-gray-300 border border-white/5">
-                {tag}
-              </span>
-            ))}
+          {/* --- TAGS SECTION UPDATED --- */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {cleanTags.length > 0 ? (
+              cleanTags.slice(0, 3).map((tag, i) => (
+                <span 
+                  key={`${tag}-${i}`} 
+                  // UPDATED CLASSNAME: Matches screenshot style
+                  // bg-white/10 for dark grey look, rounded-lg for soft corners (not full pill), text-gray-300
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 transition-colors capitalize"
+                >
+                  {tag}
+                </span>
+              ))
+            ) : (
+              // Default demo tags matching the new style
+              <>
+                <span className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 transition-colors">
+                  Demo
+                </span>
+                <span className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-gray-300 transition-colors">
+                  Preview
+                </span>
+              </>
+            )}
           </div>
           
           <p className="text-gray-400 text-sm line-clamp-2 leading-relaxed mb-3">
@@ -130,9 +164,8 @@ const PromptCard: React.FC<PromptProps> = ({
             </div>
           )}
 
-          {/* Bottom section with time and copy button */}
+          {/* Bottom section */}
           <div className="mt-auto flex items-center justify-between gap-3">
-            {/* Time Estimate */}
             {estimatedTime && (
               <div className="flex items-center gap-1 text-xs text-gray-500">
                 <Clock size={14} />
@@ -144,7 +177,6 @@ const PromptCard: React.FC<PromptProps> = ({
       </motion.div>
       </div>
 
-      {/* Usage Limit Modal */}
       <UsageLimitModal 
         isOpen={showLimitModal} 
         onClose={() => setShowLimitModal(false)} 

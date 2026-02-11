@@ -15,9 +15,11 @@ export interface IUser extends Document {
     otp?: string;
     otpExpiresAt?: Date;
 
-
     plan: "free" | "yearly" | "lifetime";
     planExpiresAt?: Date | null;
+
+    role: "user" | "admin" | "super_admin";
+    isBlocked?: boolean;
 
     createdAt: Date;
     updatedAt: Date;
@@ -78,6 +80,18 @@ const UserSchema: Schema<IUser> = new Schema(
         planExpiresAt: {
             type: Date,
             default: null
+        },
+
+        role: {
+            type: String,
+            enum: ["user", "admin", "super_admin"],
+            default: "user",
+            index: true
+        },
+
+        isBlocked: {
+            type: Boolean,
+            default: false
         },
 
         otp: {

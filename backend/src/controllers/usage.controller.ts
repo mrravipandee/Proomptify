@@ -3,7 +3,7 @@ import Usage from "../models/Usage";
 import User from "../models/User";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
-const FREE_LIFETIME_LIMIT = 10;
+const FREE_LIFETIME_LIMIT = 1000;
 
 /**
  * Track prompt click

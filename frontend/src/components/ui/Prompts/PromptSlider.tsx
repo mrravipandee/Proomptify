@@ -66,7 +66,7 @@ const PromptSlider: React.FC<PromptSliderProps> = ({
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {prompts.map((prompt) => (
-          <div key={prompt.id} className="snap-start">
+          <div key={prompt._id} className="snap-start">
              <PromptCard {...prompt} onCopy={onCopyPrompt} />
           </div>
         ))}
