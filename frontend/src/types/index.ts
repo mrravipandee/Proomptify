@@ -28,6 +28,7 @@ export interface Category {
 
 export interface Prompt {
   _id: string;
+  id?: string;
   title: string;
   description: string;
   tags: string[];
@@ -39,6 +40,7 @@ export interface Prompt {
   estimatedTime?: string;
   usageCount?: number;
   referenceUrl?: string | null;
+  createdBy?: string;
   status?: PromptStatus;
   createdAt?: string;
   updatedAt?: string;

@@ -52,6 +52,8 @@ export default function PromptsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [tagInput, setTagInput] = useState('');
+  const [stepInput, setStepInput] = useState('');
+  const [completeStepInput, setCompleteStepInput] = useState('');
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,7 +61,8 @@ export default function PromptsPage() {
 
   // Form State
   const [formData, setFormData] = useState<Partial<Prompt> & { image?: File; status?: 'draft' | 'published' }>({
-    title: '', category: '', description: '', tags: [], promptText: '', status: 'draft', image: undefined
+    title: '', category: '', description: '', tags: [], promptText: '', status: 'draft', image: undefined,
+    steps: [], completeSteps: [], estimatedTime: '', referenceUrl: ''
   });
 
   // Fetch prompts and categories on mount
@@ -129,6 +132,10 @@ export default function PromptsPage() {
         tags: prompt.tags || [],
         status: prompt.status || 'draft',
         imgUrl: prompt.imgUrl || '',
+        steps: prompt.steps || [],
+        completeSteps: prompt.completeSteps || [],
+        estimatedTime: prompt.estimatedTime || '',
+        referenceUrl: prompt.referenceUrl || '',
       });
       if (prompt.imgUrl) {
         setImagePreview(prompt.imgUrl);
@@ -144,6 +151,10 @@ export default function PromptsPage() {
         tags: [],
         status: 'draft',
         imgUrl: '',
+        steps: [],
+        completeSteps: [],
+        estimatedTime: '',
+        referenceUrl: '',
       });
     }
     setIsModalOpen(true);
@@ -168,6 +179,52 @@ export default function PromptsPage() {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       handleAddTag();
+    }
+  };
+
+  // Step handlers
+  const handleAddStep = () => {
+    const step = stepInput.trim();
+    if (step) {
+      setFormData(prev => ({ ...prev, steps: [...(prev.steps || []), step] }));
+      setStepInput('');
+    }
+  };
+
+  const handleRemoveStep = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      steps: (prev.steps || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleStepInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddStep();
+    }
+  };
+
+  // Complete Step handlers
+  const handleAddCompleteStep = () => {
+    const step = completeStepInput.trim();
+    if (step) {
+      setFormData(prev => ({ ...prev, completeSteps: [...(prev.completeSteps || []), step] }));
+      setCompleteStepInput('');
+    }
+  };
+
+  const handleRemoveCompleteStep = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      completeSteps: (prev.completeSteps || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleCompleteStepInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddCompleteStep();
     }
   };
 
@@ -227,6 +284,10 @@ export default function PromptsPage() {
           category: formData.category,
           tags: formData.tags,
           status: formData.status || 'draft',
+          steps: formData.steps || [],
+          completeSteps: formData.completeSteps || [],
+          estimatedTime: formData.estimatedTime || '',
+          referenceUrl: formData.referenceUrl || '',
         } as Partial<Prompt>);
       } else {
         // Create new prompt - use FormData for image upload
@@ -242,6 +303,10 @@ export default function PromptsPage() {
         uploadFormData.append('category', formData.category!);
         uploadFormData.append('tags', JSON.stringify(formData.tags || []));
         uploadFormData.append('status', formData.status || 'draft');
+        uploadFormData.append('steps', JSON.stringify(formData.steps || []));
+        uploadFormData.append('completeSteps', JSON.stringify(formData.completeSteps || []));
+        uploadFormData.append('estimatedTime', formData.estimatedTime || '');
+        uploadFormData.append('referenceUrl', formData.referenceUrl || '');
         uploadFormData.append('image', formData.image);
 
         await api.createPromptWithImage(uploadFormData);
@@ -581,6 +646,111 @@ export default function PromptsPage() {
                         rows={8}
                         className="w-full bg-[#050510] border border-white/10 rounded-xl px-4 py-3 text-gray-300 font-mono text-sm focus:border-purple-500 focus:outline-none leading-relaxed resize-none"
                         placeholder="Enter the AI prompt template here..." 
+                    />
+                  </div>
+                </div>
+
+                {/* Steps */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Steps</label>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input 
+                        value={stepInput}
+                        onChange={(e) => setStepInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && stepInput.trim()) {
+                            e.preventDefault();
+                            handleAddStep();
+                          }
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/20 transition-all placeholder-gray-600"
+                        placeholder="Type step and press Enter..." 
+                      />
+                    </div>
+                    {formData.steps && formData.steps.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        {formData.steps.map((step, idx) => (
+                          <span 
+                            key={idx}
+                            className="inline-flex items-center justify-between gap-2 px-3 py-2 bg-green-500/20 border border-green-500/30 text-green-300 rounded-lg text-xs font-medium"
+                          >
+                            <span>{idx + 1}. {step}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveStep(idx)}
+                              className="text-green-400 hover:text-green-200 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Complete Steps */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-300">Complete Steps</label>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input 
+                        value={completeStepInput}
+                        onChange={(e) => setCompleteStepInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && completeStepInput.trim()) {
+                            e.preventDefault();
+                            handleAddCompleteStep();
+                          }
+                        }}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/20 transition-all placeholder-gray-600"
+                        placeholder="Type complete step and press Enter..." 
+                      />
+                    </div>
+                    {formData.completeSteps && formData.completeSteps.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        {formData.completeSteps.map((step, idx) => (
+                          <span 
+                            key={idx}
+                            className="inline-flex items-center justify-between gap-2 px-3 py-2 bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-lg text-xs font-medium"
+                          >
+                            <span>{idx + 1}. {step}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveCompleteStep(idx)}
+                              className="text-amber-400 hover:text-amber-200 transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Estimated Time & Reference URL */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300">Estimated Time</label>
+                    <input 
+                      name="estimatedTime"
+                      value={formData.estimatedTime || ''}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/20 transition-all placeholder-gray-600"
+                      placeholder="e.g., 5 mins, 1 hour" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-300">Reference URL</label>
+                    <input 
+                      name="referenceUrl"
+                      type="url"
+                      value={formData.referenceUrl || ''}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/20 transition-all placeholder-gray-600"
+                      placeholder="https://example.com/reference" 
                     />
                   </div>
                 </div>

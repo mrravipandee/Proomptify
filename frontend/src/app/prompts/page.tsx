@@ -151,7 +151,7 @@ export default function PromptsPage() {
                                 <PromptSlider 
                                     title="Trending Now" 
                                     description="Most copied prompts this week"
-                                    prompts={allPrompts.slice(0, 5)}
+                                    prompts={[...allPrompts].sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0)).slice(0, 5)}
                                     categorySlug="all"
                                 />
                             </section>

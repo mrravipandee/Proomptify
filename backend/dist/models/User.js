@@ -78,6 +78,16 @@ const UserSchema = new mongoose_1.Schema({
         type: Date,
         default: null
     },
+    role: {
+        type: String,
+        enum: ["user", "admin", "super_admin"],
+        default: "user",
+        index: true
+    },
+    isBlocked: {
+        type: Boolean,
+        default: false
+    },
     otp: {
         type: String,
         default: null

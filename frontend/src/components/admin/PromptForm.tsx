@@ -15,7 +15,9 @@ interface PromptFormData {
   steps: string[];
   completeSteps: string[];
   estimatedTime: string;
+  usageCount?: number;
   referenceUrl: string;
+  imageFile?: File | null;
 }
 
 interface PromptFormProps {
@@ -46,6 +48,7 @@ export function PromptForm({
     steps: initialData?.steps || [],
     completeSteps: initialData?.completeSteps || [],
     estimatedTime: initialData?.estimatedTime || '',
+    usageCount: initialData?.usageCount ?? 0,
     referenceUrl: initialData?.referenceUrl || '',
   });
 
@@ -64,6 +67,7 @@ export function PromptForm({
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.category.trim()) newErrors.category = 'Category is required';
     if (!formData.promptText.trim()) newErrors.promptText = 'Prompt text is required';
+    if (!imageFile && !imagePreview) newErrors.image = 'Cover image is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -89,7 +93,7 @@ export function PromptForm({
     if (!validateForm()) return;
 
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, imageFile });
     } catch (error) {
       console.error('Form submission error:', error);
     }
@@ -230,6 +234,11 @@ export function PromptForm({
             placeholder="e.g., Instagram, LinkedIn"
             disabled={isLoading}
           />
+          {errors.category && (
+            <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+              <AlertCircle size={14} /> {errors.category}
+            </p>
+          )}
         </div>
 
         <div>
@@ -247,6 +256,29 @@ export function PromptForm({
             disabled={isLoading}
           />
         </div>
+      </div>
+
+      {/* Usage Count */}
+      <div>
+        <label className="block text-sm font-medium text-white mb-2">
+          Usage Count (Optional)
+        </label>
+        <input
+          type="number"
+          min={0}
+          value={formData.usageCount ?? 0}
+          onChange={(e) =>
+            setFormData({
+              ...formData,
+              usageCount: Number.isNaN(Number(e.target.value))
+                ? 0
+                : Number(e.target.value),
+            })
+          }
+          className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 focus:border-purple-500 text-white placeholder-gray-500 focus:outline-none transition-colors"
+          placeholder="0"
+          disabled={isLoading}
+        />
       </div>
 
       {/* Prompt Text */}
@@ -469,6 +501,11 @@ export function PromptForm({
             {imageFile ? imageFile.name : 'Click to upload image'}
           </span>
         </label>
+        {errors.image && (
+          <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
+            <AlertCircle size={14} /> {errors.image}
+          </p>
+        )}
       </div>
 
       {/* Reference URL */}

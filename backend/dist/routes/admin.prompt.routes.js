@@ -7,6 +7,7 @@ const admin_middleware_1 = require("../middlewares/admin.middleware");
 const upload_middleware_1 = require("../middlewares/upload.middleware");
 const router = (0, express_1.Router)();
 router.use(auth_middleware_1.protect, admin_middleware_1.isAdmin);
+router.get("/stats", admin_prompt_controller_1.getAdminStats);
 router.post("/", auth_middleware_1.protect, admin_middleware_1.isAdmin, upload_middleware_1.upload.single("image"), admin_prompt_controller_1.createPrompt);
 router.get("/", admin_prompt_controller_1.getAllPromptsAdmin);
 router.put("/:id", admin_prompt_controller_1.updatePrompt);

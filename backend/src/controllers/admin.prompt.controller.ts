@@ -51,6 +51,34 @@ const parseTags = (tags: any): string[] => {
     }
 };
 
+const parseStringArray = (value: any): string[] => {
+    if (Array.isArray(value)) {
+        return value.filter((item) => typeof item === "string");
+    }
+
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!trimmed) return [];
+        try {
+            const parsed = JSON.parse(trimmed);
+            return Array.isArray(parsed) ? parsed.filter((item) => typeof item === "string") : [trimmed];
+        } catch {
+            return [trimmed];
+        }
+    }
+
+    return [];
+};
+
+const parseNumber = (value: any, fallback = 0): number => {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim() !== "") {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? parsed : fallback;
+    }
+    return fallback;
+};
+
 const slugifyCategory = (value: string): string =>
     value
         .toString()
@@ -84,24 +112,45 @@ export const createPrompt = async (req: AuthRequest, res: Response) => {
             imageUrl = await uploadToCloudinary(req.file.buffer);
         }
 
-        // Parse tags and normalize category before saving
+        const { title, description, category, promptText } = req.body;
+
+        if (!title || !description || !category || !promptText) {
+            return res.status(400).json({
+                message: "Missing required fields",
+                required: ["title", "description", "category", "promptText"],
+            });
+        }
+
+        if (!req.file && !req.body.imgUrl) {
+            return res.status(400).json({
+                message: "Cover image is required",
+            });
+        }
+
+        // Parse tags/arrays and normalize category before saving
         const parsedTags = parseTags(req.body.tags);
+        const parsedSteps = parseStringArray(req.body.steps);
+        const parsedCompleteSteps = parseStringArray(req.body.completeSteps);
         const categorySlug = await resolveCategorySlug(req.body.category);
+        const usageCount = parseNumber(req.body.usageCount, 0);
 
         const prompt = await Prompt.create({
             ...req.body,
             tags: parsedTags,
+            steps: parsedSteps,
+            completeSteps: parsedCompleteSteps,
+            usageCount,
             ...(categorySlug ? { category: categorySlug } : {}),
-            imgUrl: imageUrl,
+            imgUrl: imageUrl || req.body.imgUrl,
             createdBy: req.user?.userId,
         });
 
-        res.status(201).json(prompt);
+        return res.status(201).json(prompt);
 
     } catch (error: any) {
         console.error("CREATE PROMPT ERROR 👉", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Failed to create prompt",
             details: error?.message || error,
         });
@@ -117,9 +166,17 @@ export const getAllPromptsAdmin = async (_req: Request, res: Response) => {
 export const updatePrompt = async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    // Parse tags and normalize category before updating
+    // Parse tags/arrays and normalize category before updating
     if (req.body.tags) {
         req.body.tags = parseTags(req.body.tags);
+    }
+
+    if (req.body.steps) {
+        req.body.steps = parseStringArray(req.body.steps);
+    }
+
+    if (req.body.completeSteps) {
+        req.body.completeSteps = parseStringArray(req.body.completeSteps);
     }
 
     if (req.body.category) {
@@ -127,6 +184,10 @@ export const updatePrompt = async (req: Request, res: Response) => {
         if (categorySlug) {
             req.body.category = categorySlug;
         }
+    }
+
+    if (req.body.usageCount !== undefined) {
+        req.body.usageCount = parseNumber(req.body.usageCount, 0);
     }
 
     const updated = await Prompt.findByIdAndUpdate(id, req.body, {

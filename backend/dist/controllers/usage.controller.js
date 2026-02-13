@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.trackPromptUsage = void 0;
 const Usage_1 = __importDefault(require("../models/Usage"));
 const User_1 = __importDefault(require("../models/User"));
-const FREE_LIFETIME_LIMIT = 10;
+const FREE_LIFETIME_LIMIT = 1000;
 const trackPromptUsage = async (req, res) => {
     try {
         const userId = req.user?.userId;

@@ -261,6 +261,7 @@ export const api = {
     steps?: string[];
     completeSteps?: string[];
     estimatedTime?: string;
+    usageCount?: number;
     referenceUrl?: string;
   }) {
     return fetchWithAuth("/admin/prompts", {
@@ -313,6 +314,7 @@ export const api = {
     estimatedTime: string;
     referenceUrl: string;
     imgUrl: string;
+    usageCount: number;
   }>) {
     return fetchWithAuth(`/admin/prompts/${id}`, {
       method: "PUT",

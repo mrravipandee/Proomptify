@@ -18,7 +18,9 @@ interface AdminPromptFormData {
   steps: string[];
   completeSteps: string[];
   estimatedTime: string;
+  usageCount?: number;
   referenceUrl: string;
+  imageFile?: File | null;
 }
 
 export default function AdminPromptsPage() {
@@ -52,7 +54,24 @@ export default function AdminPromptsPage() {
   const handleCreatePrompt = async (formData: AdminPromptFormData) => {
     try {
       setFormLoading(true);
-      await api.createPrompt(formData);
+      if (formData.imageFile) {
+        const payload = new FormData();
+        payload.append('title', formData.title);
+        payload.append('description', formData.description);
+        payload.append('category', formData.category);
+        payload.append('promptText', formData.promptText);
+        payload.append('referenceUrl', formData.referenceUrl || '');
+        payload.append('estimatedTime', formData.estimatedTime || '');
+        payload.append('usageCount', String(formData.usageCount ?? 0));
+        payload.append('tags', JSON.stringify(formData.tags || []));
+        payload.append('steps', JSON.stringify(formData.steps || []));
+        payload.append('completeSteps', JSON.stringify(formData.completeSteps || []));
+        payload.append('image', formData.imageFile);
+        await api.createPromptWithImage(payload);
+      } else {
+        const { imageFile, ...payload } = formData;
+        await api.createPrompt(payload);
+      }
       setSuccessMessage('Prompt created successfully!');
       setShowForm(false);
       await fetchPrompts();

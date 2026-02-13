@@ -33,8 +33,8 @@ const getPrompts = async (req, res) => {
             filter.title = { $regex: search, $options: "i" };
         }
         const prompts = await Prompt_1.default.find(filter)
-            .select("title description imgUrl category usageCount tags")
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
         return res.json(prompts);
     }
     catch (error) {

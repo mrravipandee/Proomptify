@@ -9,7 +9,7 @@ const app_1 = __importDefault(require("./app"));
 const db_1 = require("./config/db");
 const subscription_cron_1 = require("./services/subscription.cron");
 dotenv_1.default.config();
-const PORT = process.env.PORT || 5500;
+const PORT = process.env.PORT || 5000;
 const start = async () => {
     try {
         await (0, db_1.connectDB)();
