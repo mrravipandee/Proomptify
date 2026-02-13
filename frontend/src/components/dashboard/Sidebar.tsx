@@ -13,7 +13,6 @@ import {
   Settings,
   LogOut,
   X,
-  Sparkles,
   Zap,
   Shield
 } from 'lucide-react';

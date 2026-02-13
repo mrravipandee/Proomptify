@@ -29,12 +29,12 @@ export default function BuyButton({ plan }: { plan: "yearly" | "lifetime" }) {
       // Call payment API - JWT token automatically included
       const data = await api.createPaymentSession(plan);
 
-      if (!data.paymentUrl) {
+      if (!(data as any)?.paymentUrl) {
         throw new Error("No payment URL received from server");
       }
 
       // Redirect to Dodo payment checkout
-      window.location.href = data.paymentUrl;
+      window.location.href = (data as any).paymentUrl;
     } catch (err) {
       console.error("Payment error:", err);
       const errorMessage =

@@ -29,11 +29,6 @@ type Category = {
   count?: number;
 };
 
-interface FetchDataResponse {
-  prompts: Prompt[];
-  categories: CategoryWithPrompts[];
-}
-
 interface CategoriesApiResponse {
   data: CategoryApiResponse[];
 }
@@ -53,21 +48,26 @@ export default function PromptsPage() {
                 setLoading(true);
                 
                 // Fetch all prompts
-                const promptsResponse = await api.getPrompts();
-                const prompts: Prompt[] = (promptsResponse.data || promptsResponse || []).map((prompt: Prompt) => ({
-                  ...prompt,
-                  id: prompt._id, // Map MongoDB _id to id
-                  tags: Array.isArray(prompt.tags) 
-                    ? prompt.tags 
-                    : typeof prompt.tags === 'string' 
-                      ? JSON.parse(prompt.tags) 
-                      : [], // Ensure tags is always an array
-                }));
+                                const promptsResponse = await api.getPrompts();
+                                const rawPrompts = Array.isArray(promptsResponse)
+                                    ? promptsResponse
+                                    : (promptsResponse as { data?: Prompt[] }).data ?? [];
+                                const prompts: Prompt[] = rawPrompts.map((prompt: Prompt) => ({
+                                    ...prompt,
+                                    id: prompt._id, // Map MongoDB _id to id
+                                    tags: Array.isArray(prompt.tags) 
+                                        ? prompt.tags 
+                                        : typeof prompt.tags === 'string' 
+                                            ? JSON.parse(prompt.tags) 
+                                            : [], // Ensure tags is always an array
+                                }));
                 setAllPrompts(prompts);
 
                 // Fetch all categories (with high limit to get all)
-                const categoriesResponse: CategoriesApiResponse = await api.getCategories(1, 100);
-                const categories: CategoryApiResponse[] = categoriesResponse.data || [];
+                                const categoriesResponse = await api.getCategories(1, 100);
+                                const categories: CategoryApiResponse[] = Array.isArray(categoriesResponse)
+                                    ? categoriesResponse
+                                    : (categoriesResponse as CategoriesApiResponse).data || [];
 
                 // Build categories with their prompts
                 const categoryData: CategoryWithPrompts[] = categories

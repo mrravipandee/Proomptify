@@ -71,16 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.login(email, password);
       
       // Validate response has required fields
-      if (!response || !response.token || !response.user) {
+      if (!(response as any)?.token || !(response as any)?.user) {
         throw new Error('Invalid response from server. Please try again.');
       }
       
-      setTokenState(response.token);
-      setUser(response.user);
+      setTokenState((response as any).token);
+      setUser((response as any).user);
       
       // Store in localStorage
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('token', (response as any).token);
+      localStorage.setItem('user', JSON.stringify((response as any).user));
     } catch (error) {
       throw error;
     } finally {

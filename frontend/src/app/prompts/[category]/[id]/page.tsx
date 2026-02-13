@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Copy, Check, ExternalLink, Clock, TrendingUp, Lock } from 'lucide-react';
+import { ArrowLeft, Copy, Check, ExternalLink, Clock, TrendingUp } from 'lucide-react';
 import type { Prompt } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -13,12 +13,15 @@ import UsageLimitModal from '@/components/ui/UsageLimitModal';
 export default function PromptDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const category = params.category as string;
+    
+    // params.category might be an ID or a slug, depending on your URL structure
+    const categoryParam = params.category as string;
     const id = params.id as string;
     
     const [isCopied, setIsCopied] = useState(false);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [prompt, setPrompt] = useState<Prompt | null>(null);
+    const [categoryName, setCategoryName] = useState<string>(''); // Stores the human-readable name
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { user, token } = useAuth();
@@ -30,27 +33,77 @@ export default function PromptDetailPage() {
         }
     }, [user, router]);
 
-    // Fetch the specific prompt from API
+    // Fetch the specific prompt AND categories to get the name
     useEffect(() => {
-        const fetchPrompt = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
+
+                // 1. Fetch the Prompt
                 const response = await api.getSinglePrompt(id);
-                // Handle response structure - could be direct object or wrapped in data property
-                const promptData = response.data || response;
-                const mappedPrompt = {
-                    ...promptData,
-                    id: promptData._id || promptData.id,
-                    tags: Array.isArray(promptData.tags) 
-                        ? promptData.tags 
-                        : typeof promptData.tags === 'string' 
-                            ? JSON.parse(promptData.tags) 
-                            : [],
+                const responseData = (response as { data?: unknown }).data ?? response;
+                const promptData = responseData as Partial<Prompt> & {
+                    id?: string;
+                    tags?: unknown;
+                    categoryId?: string;
+                    category?: string;
+                };
+                
+                // Parse tags safely
+                const parsedTags = Array.isArray(promptData.tags)
+                    ? promptData.tags
+                    : typeof promptData.tags === 'string'
+                        ? JSON.parse(promptData.tags)
+                        : [];
+
+                const mappedPrompt: Prompt = {
+                    _id: promptData._id || promptData.id || '',
+                    title: promptData.title || '',
+                    description: promptData.description || '',
+                    promptText: promptData.promptText || '',
+                    category: promptData.category || '',
+                    imgUrl: promptData.imgUrl,
+                    steps: promptData.steps,
+                    completeSteps: promptData.completeSteps,
+                    estimatedTime: promptData.estimatedTime,
+                    usageCount: promptData.usageCount,
+                    referenceUrl: promptData.referenceUrl ?? null,
+                    status: promptData.status,
+                    createdAt: promptData.createdAt,
+                    updatedAt: promptData.updatedAt,
+                    tags: parsedTags,
                 };
                 setPrompt(mappedPrompt);
+
+                // 2. Fetch Categories to find the Name
+                try {
+                    const catResponse = await api.getCategories();
+                    const categories = ((catResponse as { data?: unknown[] }).data || catResponse || []) as Array<{ _id: string; name: string; slug: string }>;
+                    
+                    // Logic: Find the category object that matches the prompt's categoryId
+                    const foundCategory = categories.find((cat) => 
+                        cat._id === promptData.categoryId ||  // Match by ID in prompt
+                        cat._id === promptData.category ||    // Sometimes it's directly on category
+                        cat.slug === categoryParam            // Match by URL param
+                    );
+                    
+                    if (foundCategory) {
+                        setCategoryName(foundCategory.name);
+                    } else {
+                        // Fallback: If param looks like an ID (long string), show "Back" or "Category"
+                        // Otherwise, capitalize the slug
+                        const isId = categoryParam.length > 20 && /\d/.test(categoryParam);
+                        setCategoryName(isId ? 'Category' : categoryParam.charAt(0).toUpperCase() + categoryParam.slice(1));
+                    }
+                } catch (catErr) {
+                    console.error("Error fetching categories:", catErr);
+                    setCategoryName("Category");
+                }
+
                 setError(null);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to fetch prompt');
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : 'Failed to fetch prompt';
+                setError(message);
                 console.error('Error fetching prompt:', err);
             } finally {
                 setLoading(false);
@@ -58,27 +111,11 @@ export default function PromptDetailPage() {
         };
 
         if (id) {
-            fetchPrompt();
+            fetchData();
         }
-    }, [id]);
+    }, [id, categoryParam]);
 
-    if (!user) {
-        return (
-            <div className="min-h-screen bg-[#050520] text-white flex items-center justify-center">
-                <div className="text-center">
-                    <Lock size={64} className="mx-auto mb-4 text-purple-500" />
-                    <h1 className="text-4xl font-bold mb-4">Login Required</h1>
-                    <p className="text-gray-400 mb-6">Please login to view prompts</p>
-                    <Link 
-                        href="/login"
-                        className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-semibold transition-colors"
-                    >
-                        Go to Login
-                    </Link>
-                </div>
-            </div>
-        );
-    }
+    if (!user) return null; // Or your loading/login UI
 
     if (loading) {
         return (
@@ -112,15 +149,11 @@ export default function PromptDetailPage() {
         }
 
         try {
-            // Track usage first
             await api.trackUsage(id);
-            
-            // If we get here, limit not reached - copy the prompt
             await navigator.clipboard.writeText(prompt.promptText);
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 2000);
         } catch (error: unknown) {
-            // Check if error is about usage limit
             if (error instanceof Error && error.message) {
                 if (error.message.includes('FREE_LIMIT_REACHED') || 
                     error.message.includes('limit') || 
@@ -129,8 +162,6 @@ export default function PromptDetailPage() {
                     return;
                 }
             }
-            
-            // Log other errors
             console.error('Error:', error);
         }
     };
@@ -139,13 +170,13 @@ export default function PromptDetailPage() {
         <div className="min-h-screen bg-[#050520] text-white pb-20">
             <div className="container mx-auto px-4 py-8">
                 
-                {/* Back Button */}
+                {/* Back Button - Updated to show Name */}
                 <Link 
-                    href={`/prompts/${category}`}
+                    href={`/prompts/${categoryParam}`}
                     className="inline-flex mt-20 items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors"
                 >
                     <ArrowLeft size={20} />
-                    <span>Back to {category.charAt(0).toUpperCase() + category.slice(1)} prompts</span>
+                    <span>Back to {categoryName} prompts</span>
                 </Link>
 
                 <div className="max-w-7xl mx-auto">
@@ -274,13 +305,10 @@ export default function PromptDetailPage() {
                                 </pre>
                             </div>
                         </div>
-                        {/* End Right Side */}
                     </div>
-                    {/* End Two Column Layout */}
                 </div>
             </div>
 
-            {/* Usage Limit Modal */}
             <UsageLimitModal 
                 isOpen={showLimitModal} 
                 onClose={() => setShowLimitModal(false)} 

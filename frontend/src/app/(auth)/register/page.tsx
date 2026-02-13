@@ -27,7 +27,7 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const response = await api.register(formData);
+      await api.register(formData);
       
       // Store email for verification page
       localStorage.setItem('verifyEmail', formData.email);

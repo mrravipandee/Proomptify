@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useMemo, useId } from 'react';
 
 interface Star {
   id: number;
@@ -13,31 +13,48 @@ interface Star {
   duration: number;
 }
 
+const hashSeed = (seed: string) => {
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+const seededRandom = (seed: number) => {
+  let t = seed;
+  return () => {
+    t += 0x6D2B79F5;
+    let result = t;
+    result = Math.imul(result ^ (result >>> 15), result | 1);
+    result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
+    return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
 // Helper to generate random stars
-const generateStars = (count: number): Star[] => {
+const generateStars = (count: number, rand: () => number): Star[] => {
   const stars: Star[] = [];
   for (let i = 0; i < count; i++) {
     stars.push({
       id: i,
-      top: `${Math.random() * 70}%`, // Keep stars mostly in the upper 70%
-      left: `${Math.random() * 100}%`,
-      size: Math.random() * 3 + 1 + 'px',
-      delay: Math.random() * 4,
-      duration: Math.random() * 3 + 2,
+      top: `${rand() * 70}%`, // Keep stars mostly in the upper 70%
+      left: `${rand() * 100}%`,
+      size: rand() * 3 + 1 + 'px',
+      delay: rand() * 4,
+      duration: rand() * 3 + 2,
     });
   }
   return stars;
 };
 
 const Hero = () => {
-  const [stars, setStars] = useState<Star[]>([]);
-  const [mounted, setMounted] = useState(false);
-
-  // Generate stars only on client-side after mount
-  useEffect(() => {
-    setStars(generateStars(40));
-    setMounted(true);
-  }, []);
+  const seed = useId();
+  const stars = useMemo(() => {
+    const rand = seededRandom(hashSeed(seed));
+    return generateStars(40, rand);
+  }, [seed]);
 
   return (
     <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#050520] pt-20 pb-32">
@@ -47,33 +64,31 @@ const Hero = () => {
       {/* 1. Grid Pattern (Kept from previous version) */}
       <div className="absolute inset-0 w-full h-full bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none z-0"></div>
       
-      {/* 2. STARS - Only render after mount */}
-      {mounted && (
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          {stars.map((star) => (
-            <motion.div
-              key={star.id}
-              style={{
-                top: star.top,
-                left: star.left,
-                width: star.size,
-                height: star.size,
-              }}
-              animate={{
-                opacity: [0.2, 1, 0.2],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: star.duration,
-                repeat: Infinity,
-                delay: star.delay,
-                ease: "easeInOut",
-              }}
-              className="absolute bg-white rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)]"
-            />
-          ))}
-        </div>
-      )}
+      {/* 2. STARS */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        {stars.map((star) => (
+          <motion.div
+            key={star.id}
+            style={{
+              top: star.top,
+              left: star.left,
+              width: star.size,
+              height: star.size,
+            }}
+            animate={{
+              opacity: [0.2, 1, 0.2],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{
+              duration: star.duration,
+              repeat: Infinity,
+              delay: star.delay,
+              ease: "easeInOut",
+            }}
+            className="absolute bg-white rounded-full shadow-[0_0_5px_rgba(255,255,255,0.8)]"
+          />
+        ))}
+      </div>
 
       {/* 3. THE HALF-CIRCLE HORIZON & ANIMATED COLORS */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-full z-0 pointer-events-none overflow-hidden">

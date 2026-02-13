@@ -73,7 +73,10 @@ export default function PromptsPage() {
       setLoading(true);
       setError('');
       const response = await api.getPrompts();
-      const data = (response.data || response || []).map((prompt: Omit<Prompt, 'id'> & { _id?: string }) => ({
+      const rawPrompts = Array.isArray(response)
+        ? response
+        : (response as { data?: Array<Omit<Prompt, 'id'> & { _id?: string }> }).data ?? [];
+      const data = rawPrompts.map((prompt) => ({
         ...prompt,
         id: prompt._id || '', // Map MongoDB _id to id
         tags: Array.isArray(prompt.tags) 
@@ -95,7 +98,10 @@ export default function PromptsPage() {
   const fetchCategories = async () => {
     try {
       const response = await api.getCategories(1, 100);
-      setCategories(response.data || []);
+      const data = Array.isArray(response)
+        ? response
+        : ((response as { data?: Category[] }).data ?? []);
+      setCategories(data);
     } catch (err: unknown) {
       const error = err as Error;
       console.error('Failed to fetch categories:', error);
@@ -282,6 +288,12 @@ export default function PromptsPage() {
             <span className="hidden sm:inline">Add New Prompt</span>
           </button>
         </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-300 text-sm">
+            {error}
+          </div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -531,7 +543,7 @@ export default function PromptsPage() {
                     />
                     <label 
                       htmlFor="image-upload"
-                      className="border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-gray-500 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all cursor-pointer group block"
+                      className="border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center text-gray-500 hover:border-purple-500/50 hover:bg-purple-500/5 transition-all cursor-pointer group"
                     >
                       {imagePreview ? (
                         <div className="w-full h-40 rounded-lg overflow-hidden relative">

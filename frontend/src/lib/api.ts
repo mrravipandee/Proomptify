@@ -65,7 +65,7 @@ const getAuthHeaders = (): Record<string, string> => {
 async function fetchWithAuth(
   endpoint: string,
   options: RequestInit = {}
-): Promise<any> {
+): Promise<unknown> {
   const url = `${API_BASE_URL}${endpoint}`;
   
   const response = await fetch(url, {
@@ -83,8 +83,8 @@ async function fetchWithAuth(
 // RESPONSE HANDLER
 // =======================================================
 
-async function handleResponse(res: Response) {
-  let data: any = null;
+async function handleResponse(res: Response): Promise<unknown> {
+  let data: unknown = null;
 
   try {
     data = await res.json();
@@ -106,7 +106,11 @@ async function handleResponse(res: Response) {
   }
 
   if (!res.ok) {
-    throw new Error(data?.message || "Something went wrong");
+    const message =
+      typeof data === "object" && data !== null && "message" in data
+        ? String((data as { message?: unknown }).message || "Something went wrong")
+        : "Something went wrong";
+    throw new Error(message);
   }
 
   return data;
@@ -165,7 +169,7 @@ export const api = {
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await handleResponse(res);
+    const data = (await handleResponse(res)) as { token: string; user: unknown };
 
     // Save automatically
     localStorage.setItem("token", data.token);
@@ -330,5 +334,45 @@ export const api = {
    */
   async getAdminStats() {
     return fetchWithAuth("/admin/stats");
+  },
+
+  // =======================================================
+  // ADMIN CATEGORIES MANAGEMENT
+  // =======================================================
+
+  /**
+   * Create a new category (Admin only)
+   * Requires: Authentication + Admin role
+   */
+  async createCategory(payload: {
+    name: string;
+    description?: string;
+  }) {
+    return fetchWithAuth("/categories", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * Update a category (Admin only)
+   */
+  async updateCategory(id: string, payload: {
+    name?: string;
+    description?: string;
+  }) {
+    return fetchWithAuth(`/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /**
+   * Delete a category (Admin only)
+   */
+  async deleteCategory(id: string) {
+    return fetchWithAuth(`/categories/${id}`, {
+      method: "DELETE",
+    });
   },
 };

@@ -55,16 +55,17 @@ export async function authFetch(
   const authHeaders = getAuthHeaders();
 
   // Merge with user-provided headers
-  const headers: Record<string, string> = {
-    ...authHeaders,
-    ...(typeof options.headers === 'object' && options.headers !== null
-      ? Object.fromEntries(
-          Object.entries(options.headers as Record<string, any>).filter(
-            ([, value]) => typeof value === 'string'
-          )
-        )
-      : {}),
-  };
+  const headers: Record<string, string> = { ...authHeaders };
+  
+  if (typeof options.headers === 'object' && options.headers !== null) {
+    const userHeaders = Object.entries(options.headers as Record<string, unknown>)
+      .filter(([, value]) => typeof value === 'string')
+      .reduce((acc, [key, value]) => {
+        acc[key] = value as string;
+        return acc;
+      }, {} as Record<string, string>);
+    Object.assign(headers, userHeaders);
+  }
 
   // Make request with merged headers
   const response = await fetch(endpoint, {
@@ -147,7 +148,7 @@ export const api = {
    * GET request - returns parsed JSON
    * @example const user = await api.get('/api/users/me');
    */
-  get: async (endpoint: string): Promise<any> => {
+  get: async (endpoint: string): Promise<unknown> => {
     const response = await authFetch(endpoint, { method: 'GET' });
     return response.json();
   },
@@ -156,7 +157,7 @@ export const api = {
    * POST request - returns parsed JSON
    * @example const result = await api.post('/api/payments/create-session', { plan: 'yearly' });
    */
-  post: async (endpoint: string, body: Record<string, any>): Promise<any> => {
+  post: async (endpoint: string, body: Record<string, unknown>): Promise<unknown> => {
     const response = await authFetch(endpoint, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -168,7 +169,7 @@ export const api = {
    * PUT request - returns parsed JSON
    * @example await api.put('/api/prompts/123', { title: 'Updated Title' });
    */
-  put: async (endpoint: string, body: Record<string, any>): Promise<any> => {
+  put: async (endpoint: string, body: Record<string, unknown>): Promise<unknown> => {
     const response = await authFetch(endpoint, {
       method: 'PUT',
       body: JSON.stringify(body),
@@ -180,7 +181,7 @@ export const api = {
    * DELETE request - returns parsed JSON
    * @example await api.delete('/api/prompts/123');
    */
-  delete: async (endpoint: string): Promise<any> => {
+  delete: async (endpoint: string): Promise<unknown> => {
     const response = await authFetch(endpoint, { method: 'DELETE' });
     return response.json();
   },
@@ -189,7 +190,7 @@ export const api = {
    * PATCH request - returns parsed JSON
    * @example await api.patch('/api/users/me', { email: 'new@email.com' });
    */
-  patch: async (endpoint: string, body: Record<string, any>): Promise<any> => {
+  patch: async (endpoint: string, body: Record<string, unknown>): Promise<unknown> => {
     const response = await authFetch(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(body),

@@ -28,7 +28,7 @@ export default function AdminAnalyticsPage() {
     try {
       setLoading(true);
       const response = await api.getAdminStats();
-      setStats(response);
+      setStats((response as any)?.data || null);
     } catch (error: unknown) {
       console.error('Failed to fetch stats:', error);
     } finally {

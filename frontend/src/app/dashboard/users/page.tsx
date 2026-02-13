@@ -39,7 +39,7 @@ const INITIAL_USERS: User[] = [
 ];
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS);
+  const [users] = useState<User[]>(INITIAL_USERS);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Filter logic

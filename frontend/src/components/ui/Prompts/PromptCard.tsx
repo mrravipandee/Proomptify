@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Clock, TrendingUp, ChevronRight, Lock } from 'lucide-react';
+import { Clock, TrendingUp, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -109,11 +109,6 @@ const PromptCard: React.FC<PromptProps> = ({
               </div>
             )}
             
-            {!user && (
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center">
-                <Lock size={32} className="text-white/80" />
-              </div>
-            )}
           </div>
         )}
 

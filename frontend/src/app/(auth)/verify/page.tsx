@@ -95,11 +95,11 @@ export default function VerifyPage() {
       const response = await api.verifyEmail(email, otpCode);
       
       // Auto-login: Store token and user data
-      if (response.data?.token && response.data?.user) {
-        setToken(response.data.token);
-        setUser(response.data.user);
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      if ((response as any)?.data?.token && (response as any)?.data?.user) {
+        setToken((response as any).data.token);
+        setUser((response as any).data.user);
+        localStorage.setItem('token', (response as any).data.token);
+        localStorage.setItem('user', JSON.stringify((response as any).data.user));
       }
       
       setIsVerified(true);

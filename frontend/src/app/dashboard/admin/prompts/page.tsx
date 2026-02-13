@@ -2,18 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Edit2, Search, Loader } from 'lucide-react';
+import { Plus, Trash2, Search, Loader } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Prompt } from '@/types';
 import { PromptForm } from '@/components/admin/PromptForm';
 import { AdminOnly } from '@/components/admin/AdminOnly';
+import Image from 'next/image';
+
+interface AdminPromptFormData {
+  title: string;
+  description: string;
+  category: string;
+  tags: string[];
+  promptText: string;
+  steps: string[];
+  completeSteps: string[];
+  estimatedTime: string;
+  referenceUrl: string;
+}
 
 export default function AdminPromptsPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formLoading, setFormLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -27,16 +39,17 @@ export default function AdminPromptsPage() {
     try {
       setLoading(true);
       const response = await api.getAdminPrompts(1, 100);
-      setPrompts(response.data || response);
-    } catch (error: any) {
+      setPrompts(((response as any)?.data || response) as Prompt[]);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch prompts';
       console.error('Failed to fetch prompts:', error);
-      alert(error.message || 'Failed to fetch prompts');
+      alert(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreatePrompt = async (formData: any) => {
+  const handleCreatePrompt = async (formData: AdminPromptFormData) => {
     try {
       setFormLoading(true);
       await api.createPrompt(formData);
@@ -44,8 +57,9 @@ export default function AdminPromptsPage() {
       setShowForm(false);
       await fetchPrompts();
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error: any) {
-      alert(error.message || 'Failed to create prompt');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to create prompt';
+      alert(message);
     } finally {
       setFormLoading(false);
     }
@@ -57,11 +71,12 @@ export default function AdminPromptsPage() {
     try {
       setDeleting(id);
       await api.deletePrompt(id);
-      setPrompts(prompts.filter((p) => p.id !== id));
+      setPrompts(prompts.filter((p) => p._id !== id));
       setSuccessMessage('Prompt deleted successfully!');
       setTimeout(() => setSuccessMessage(''), 3000);
-    } catch (error: any) {
-      alert(error.message || 'Failed to delete prompt');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to delete prompt';
+      alert(message);
     } finally {
       setDeleting(null);
     }
@@ -175,7 +190,7 @@ export default function AdminPromptsPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredPrompts.map((prompt) => (
                 <motion.div
-                  key={prompt.id}
+                  key={prompt._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur hover:border-purple-500/30 hover:bg-white/[0.08] transition-all h-full flex flex-col"
@@ -183,10 +198,12 @@ export default function AdminPromptsPage() {
                   {/* Image */}
                   {prompt.imgUrl && (
                     <div className="relative h-40 overflow-hidden bg-gradient-to-br from-purple-500/10 to-blue-500/10">
-                      <img
+                      <Image
                         src={prompt.imgUrl}
                         alt={prompt.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                     </div>
                   )}
@@ -220,19 +237,12 @@ export default function AdminPromptsPage() {
                     {/* Actions */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setEditingId(prompt.id)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg transition-colors text-sm border border-blue-500/30"
-                      >
-                        <Edit2 size={14} />
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeletePrompt(prompt.id)}
-                        disabled={deleting === prompt.id}
+                        onClick={() => handleDeletePrompt(prompt._id)}
+                        disabled={deleting === prompt._id}
                         className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors text-sm border border-red-500/30 disabled:opacity-50"
                       >
                         <Trash2 size={14} />
-                        {deleting === prompt.id ? 'Deleting...' : 'Delete'}
+                        {deleting === prompt._id ? 'Deleting...' : 'Delete'}
                       </button>
                     </div>
                   </div>

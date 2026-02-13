@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -10,90 +10,125 @@ import {
   ChevronDown,
   FolderOpen,
   Layers,
-  Sparkles,
   LayoutGrid
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { api } from '@/lib/api';
 
 // --- Types ---
 interface Category {
-  id: string;
+  _id: string;
   name: string;
   slug: string;
   description: string;
-  icon: string; 
-  promptCount: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
-
-interface Prompt {
-  id: string;
-  title: string;
-  description: string;
-  tags: string[];
-  categoryId: string;
-}
-
-// --- Mock Data ---
-const INITIAL_CATEGORIES: Category[] = [
-  { id: '1', name: 'Instagram', slug: 'instagram', description: 'Growth & Viral Hooks', icon: '📸', promptCount: 12 },
-  { id: '2', name: 'LinkedIn', slug: 'linkedin', description: 'Professional Storytelling', icon: '💼', promptCount: 8 },
-  { id: '3', name: 'YouTube', slug: 'youtube', description: 'Scripts & Intros', icon: '📹', promptCount: 15 },
-  { id: '4', name: 'AI Art', slug: 'ai-art', description: 'Midjourney & Dall-E', icon: '🎨', promptCount: 24 },
-];
-
-const MOCK_PROMPTS: Prompt[] = [
-  { id: 'p1', title: 'Viral Hook Generator', description: 'Create 5 hooks for...', tags: ['Viral'], categoryId: '1' },
-  { id: 'p2', title: 'Carousel Caption', description: 'Write engaging captions...', tags: ['Growth'], categoryId: '1' },
-  { id: 'p3', title: 'Reel Script', description: '30-sec script format...', tags: ['Video'], categoryId: '1' },
-  { id: 'p4', title: 'Bio Optimizer', description: 'Perfect bio structure...', tags: ['Profile'], categoryId: '1' },
-  { id: 'p5', title: 'Professional Update', description: 'Share a win humbly...', tags: ['Career'], categoryId: '2' },
-  { id: 'p6', title: 'Networking Outreach', description: 'Cold msg template...', tags: ['Sales'], categoryId: '2' },
-];
 
 export default function CategoryPage() {
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [formData, setFormData] = useState<Partial<Category>>({ name: '', slug: '', description: '', icon: '📁' });
+  const [formData, setFormData] = useState<{ name: string; description: string }>({ 
+    name: '', 
+    description: '' 
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.getCategories(1, 100); // Get all categories
+      const data = Array.isArray(response)
+        ? response
+        : ((response as { data?: Category[] }).data ?? []);
+      setCategories(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch categories';
+      setError(message);
+      console.error('Error fetching categories:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Stats
-  const totalPrompts = categories.reduce((acc, curr) => acc + curr.promptCount, 0);
+  const totalCategories = categories.length;
 
   // --- Handlers ---
   const handleOpenModal = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
-      setFormData(category);
+      setFormData({ 
+        name: category.name, 
+        description: category.description || '' 
+      });
     } else {
       setEditingCategory(null);
-      setFormData({ name: '', slug: '', description: '', icon: '📁' });
+      setFormData({ name: '', description: '' });
     }
     setIsModalOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Delete this category?')) {
-      setCategories(categories.filter(c => c.id !== id));
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this category? This action cannot be undone.')) return;
+    
+    try {
+      await api.deleteCategory(id);
+      setCategories(categories.filter(c => c._id !== id));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete category';
+      alert(message);
+      console.error('Error deleting category:', err);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingCategory) {
-      setCategories(categories.map(c => c.id === editingCategory.id ? { ...c, ...formData } as Category : c));
-    } else {
-      const newCat: Category = {
-        ...formData as Category,
-        id: Math.random().toString(36).substr(2, 9),
-        promptCount: 0
-      };
-      setCategories([...categories, newCat]);
+    
+    if (!formData.name.trim()) {
+      alert('Category name is required');
+      return;
     }
-    setIsModalOpen(false);
+
+    try {
+      setSubmitting(true);
+      
+      if (editingCategory) {
+        // Update existing category
+        const response = await api.updateCategory(editingCategory._id, formData);
+        const updated = (response as { data?: Category }).data ?? response;
+        setCategories(categories.map(c => 
+          c._id === editingCategory._id ? (updated as Category) : c
+        ));
+      } else {
+        // Create new category
+        const response = await api.createCategory(formData);
+        const created = (response as { data?: Category }).data ?? response;
+        setCategories([created as Category, ...categories]);
+      }
+      
+      setIsModalOpen(false);
+      setFormData({ name: '', description: '' });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to save category';
+      alert(message);
+      console.error('Error saving category:', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const toggleExpand = (id: string) => {
@@ -138,18 +173,18 @@ export default function CategoryPage() {
                     </div>
                     <div>
                         <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Total Categories</p>
-                        <p className="text-2xl font-bold text-white">{categories.length}</p>
+                        <p className="text-2xl font-bold text-white">{totalCategories}</p>
                     </div>
                 </div>
             </div>
             <div className="p-1 rounded-2xl bg-gradient-to-r from-blue-500/20 to-cyan-500/20">
                 <div className="bg-[#0a0a0b]/80 backdrop-blur-xl rounded-xl p-4 flex items-center gap-4 h-full border border-white/5">
                     <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400">
-                        <Sparkles size={24} />
+                        <LayoutGrid size={24} />
                     </div>
                     <div>
-                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Total Prompts</p>
-                        <p className="text-2xl font-bold text-white">{totalPrompts}</p>
+                        <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Status</p>
+                        <p className="text-2xl font-bold text-white">{loading ? 'Loading...' : 'Ready'}</p>
                     </div>
                 </div>
             </div>
@@ -170,129 +205,162 @@ export default function CategoryPage() {
             </div>
         </div>
 
-        {/* Categories List (The "No Box" Design) */}
-        <div className="space-y-4">
-          <AnimatePresence>
-          {categories.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).map((category) => {
-            const isExpanded = expandedCategory === category.id;
-            const categoryPrompts = MOCK_PROMPTS.filter(p => p.categoryId === category.id);
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+          </div>
+        )}
 
-            return (
-              <motion.div 
-                layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                key={category.id}
-                className={`relative rounded-2xl transition-all duration-300 ${
-                    isExpanded 
-                    ? 'bg-white/[0.03] border border-purple-500/30 shadow-[0_0_30px_-10px_rgba(168,85,247,0.15)]' 
-                    : 'bg-transparent border border-white/5 hover:bg-white/[0.02] hover:border-white/10'
-                }`}
-              >
-                {/* Expandable Header */}
-                <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  
-                  <div className="flex items-center gap-5">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-lg transition-all ${
-                        isExpanded ? 'bg-purple-500/20 shadow-purple-500/10' : 'bg-white/5 border border-white/5'
-                    }`}>
-                      {category.icon}
-                    </div>
-                    <div>
-                      <h3 className={`text-lg font-bold flex items-center gap-2 transition-colors ${isExpanded ? 'text-white' : 'text-gray-200'}`}>
-                        {category.name}
-                        {isExpanded && <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/10">Active</span>}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-1">
-                          <span className="text-sm text-gray-500">/{category.slug}</span>
-                          <span className="w-1 h-1 rounded-full bg-gray-600" />
-                          <span className="text-sm text-gray-500">{category.description}</span>
-                      </div>
-                    </div>
-                  </div>
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500 rounded-xl p-4 text-center">
+            <p className="text-red-400">{error}</p>
+            <button 
+              onClick={fetchCategories}
+              className="mt-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        )}
 
-                  <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-4 md:mt-0">
-                      <div className="text-right px-4 border-r border-white/10">
-                          <div className="text-lg font-bold text-white">{category.promptCount}</div>
-                          <div className="text-[10px] text-gray-500 uppercase tracking-wider">Prompts</div>
-                      </div>
+        {/* Categories List */}
+        {!loading && !error && (
+          <div className="space-y-4">
+            {categories.length === 0 ? (
+              <div className="text-center py-20">
+                <FolderOpen className="mx-auto mb-4 text-gray-600" size={64} />
+                <p className="text-gray-400 text-lg">No categories yet</p>
+                <button
+                  onClick={() => handleOpenModal()}
+                  className="mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-colors"
+                >
+                  Create Your First Category
+                </button>
+              </div>
+            ) : (
+              <AnimatePresence>
+                {categories
+                  .filter((c) => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .map((category) => {
+                    const isExpanded = expandedCategory === category._id;
 
-                      <div className="flex items-center gap-2">
-                           <button 
-                              onClick={() => toggleExpand(category.id)}
-                              className={`p-2 rounded-lg transition-all ${
-                                  isExpanded ? 'bg-white/10 text-white rotate-180' : 'text-gray-500 hover:text-white hover:bg-white/5'
-                              }`}
-                           >
-                              <ChevronDown size={20} />
-                           </button>
-
-                           <div className="flex items-center gap-1">
-                               <button onClick={() => handleOpenModal(category)} className="p-2 text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
-                                  <Edit size={18} />
-                               </button>
-                               <button onClick={() => handleDelete(category.id)} className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                                  <Trash2 size={18} />
-                               </button>
-                           </div>
-                      </div>
-                  </div>
-                </div>
-
-                {/* Expanded Content (The Prompts) */}
-                <AnimatePresence>
-                  {isExpanded && (
+                    return (
                       <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
+                        layout
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        key={category._id}
+                        className={`relative rounded-2xl transition-all duration-300 ${
+                          isExpanded
+                            ? 'bg-white/[0.03] border border-purple-500/30 shadow-[0_0_30px_-10px_rgba(168,85,247,0.15)]'
+                            : 'bg-transparent border border-white/5 hover:bg-white/[0.02] hover:border-white/10'
+                        }`}
                       >
-                          <div className="p-5 pt-0 border-t border-white/5">
-                              <div className="flex items-center gap-2 py-4">
-                                  <LayoutGrid size={14} className="text-purple-400" />
-                                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Prompts in this category</span>
+                        {/* Category Header */}
+                        <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex items-center gap-5">
+                            <div
+                              className={`w-14 h-14 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg transition-all ${
+                                isExpanded
+                                  ? 'bg-purple-500/20 shadow-purple-500/10 text-purple-400'
+                                  : 'bg-white/5 border border-white/5 text-gray-400'
+                              }`}
+                            >
+                              {category.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h3
+                                className={`text-lg font-bold flex items-center gap-2 transition-colors ${
+                                  isExpanded ? 'text-white' : 'text-gray-200'
+                                }`}
+                              >
+                                {category.name}
+                                {isExpanded && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/10">
+                                    Active
+                                  </span>
+                                )}
+                              </h3>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-sm text-gray-500">/{category.slug}</span>
+                                {category.description && (
+                                  <>
+                                    <span className="w-1 h-1 rounded-full bg-gray-600" />
+                                    <span className="text-sm text-gray-500">{category.description}</span>
+                                  </>
+                                )}
                               </div>
-                              
-                              {categoryPrompts.length > 0 ? (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                      {categoryPrompts.map(prompt => (
-                                          <div key={prompt.id} className="group relative bg-[#050508]/50 border border-white/5 p-4 rounded-xl hover:border-purple-500/30 transition-all cursor-pointer">
-                                              {/* Hover Glow */}
-                                              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 rounded-xl transition-opacity" />
-                                              
-                                              <div className="relative z-10">
-                                                <h4 className="text-gray-200 font-medium text-sm mb-1 group-hover:text-white">{prompt.title}</h4>
-                                                <p className="text-gray-500 text-xs line-clamp-1">{prompt.description}</p>
-                                                <div className="flex gap-1 mt-3">
-                                                    {prompt.tags.map(tag => (
-                                                        <span key={tag} className="text-[10px] bg-white/5 text-gray-400 px-1.5 py-0.5 rounded border border-white/5 group-hover:border-purple-500/20 group-hover:text-purple-300 transition-colors">{tag}</span>
-                                                    ))}
-                                                </div>
-                                              </div>
-                                          </div>
-                                      ))}
-                                      {/* Add Button */}
-                                      <button className="border border-dashed border-white/10 rounded-xl flex items-center justify-center gap-2 text-gray-500 hover:text-purple-400 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all h-[100px] md:h-auto">
-                                          <Plus size={16} />
-                                          <span className="text-xs font-medium">Add Prompt</span>
-                                      </button>
-                                  </div>
-                              ) : (
-                                  <div className="text-center py-6 text-gray-500 text-sm italic">
-                                      No prompts yet. Add one to get started.
-                                  </div>
-                              )}
+                            </div>
                           </div>
+
+                          <div className="flex items-center justify-between md:justify-end gap-6 w-full md:w-auto mt-4 md:mt-0">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => toggleExpand(category._id)}
+                                className={`p-2 rounded-lg transition-all ${
+                                  isExpanded
+                                    ? 'bg-white/10 text-white rotate-180'
+                                    : 'text-gray-500 hover:text-white hover:bg-white/5'
+                                }`}
+                              >
+                                <ChevronDown size={20} />
+                              </button>
+
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleOpenModal(category)}
+                                  className="p-2 text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
+                                >
+                                  <Edit size={18} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(category._id)}
+                                  className="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Expanded Content - Coming Soon */}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-5 pt-0 border-t border-white/5">
+                                <div className="flex items-center gap-2 py-4">
+                                  <LayoutGrid size={14} className="text-purple-400" />
+                                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                                    Prompts in this category
+                                  </span>
+                                </div>
+
+                                <div className="text-center py-8">
+                                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 text-sm">
+                                    <LayoutGrid size={16} className="text-purple-400" />
+                                    <span>Prompt management coming soon</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            );
-          })}
-          </AnimatePresence>
-        </div>
+                    );
+                  })}
+              </AnimatePresence>
+            )}
+          </div>
+        )}
       </div>
 
       {/* --- ADD/EDIT MODAL --- */}
@@ -325,40 +393,19 @@ export default function CategoryPage() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="text-xs text-gray-400 font-medium mb-1.5 block uppercase tracking-wider">Category Name</label>
+                  <label className="text-xs text-gray-400 font-medium mb-1.5 block uppercase tracking-wider">Category Name *</label>
                   <input 
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-purple-500 focus:outline-none transition-all"
-                    placeholder="e.g. Marketing"
+                    placeholder="e.g. Marketing, Design, Development"
                   />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="col-span-2">
-                        <label className="text-xs text-gray-400 font-medium mb-1.5 block uppercase tracking-wider">Slug</label>
-                        <input 
-                            required
-                            value={formData.slug}
-                            onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-purple-500 focus:outline-none"
-                            placeholder="marketing"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-xs text-gray-400 font-medium mb-1.5 block uppercase tracking-wider">Icon</label>
-                        <input 
-                            value={formData.icon}
-                            onChange={(e) => setFormData({...formData, icon: e.target.value})}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-purple-500 focus:outline-none text-center"
-                            placeholder="🚀"
-                        />
-                    </div>
+                  <p className="text-xs text-gray-500 mt-1">Slug will be auto-generated from the name</p>
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-400 font-medium mb-1.5 block uppercase tracking-wider">Description</label>
+                  <label className="text-xs text-gray-400 font-medium mb-1. 5 block uppercase tracking-wider">Description</label>
                   <textarea 
                     value={formData.description}
                     onChange={(e) => setFormData({...formData, description: e.target.value})}
@@ -371,15 +418,17 @@ export default function CategoryPage() {
                   <button 
                     type="button" 
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+                    disabled={submitting}
+                    className="px-4 py-2 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors text-sm font-medium disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button 
                     type="submit"
-                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium text-sm shadow-lg shadow-purple-900/20"
+                    disabled={submitting}
+                    className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded-xl font-medium text-sm shadow-lg shadow-purple-900/20 transition-colors"
                   >
-                    Save Category
+                    {submitting ? 'Saving...' : 'Save Category'}
                   </button>
                 </div>
               </form>
