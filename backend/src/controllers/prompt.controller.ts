@@ -43,8 +43,8 @@ export const getPrompts = async (
         }
 
         const prompts = await Prompt.find(filter)
-            .select("title description imgUrl category usageCount tags")
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
         return res.json(prompts);
 

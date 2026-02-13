@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Prompt from "../models/Prompt";
+import Category from "../models/Category";
 import User from "../models/User";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { uploadToCloudinary } from "../utils/uploadToCloudinary";
@@ -50,6 +51,31 @@ const parseTags = (tags: any): string[] => {
     }
 };
 
+const slugifyCategory = (value: string): string =>
+    value
+        .toString()
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+
+const resolveCategorySlug = async (category: unknown): Promise<string | undefined> => {
+    if (typeof category !== "string") return undefined;
+
+    const trimmed = category.trim();
+    if (!trimmed) return undefined;
+
+    const existing = await Category.findOne({
+        $or: [
+            { _id: trimmed },
+            { slug: trimmed.toLowerCase() },
+            { name: { $regex: `^${trimmed}$`, $options: "i" } }
+        ]
+    }).select("slug");
+
+    return existing?.slug ?? slugifyCategory(trimmed);
+};
+
 export const createPrompt = async (req: AuthRequest, res: Response) => {
     try {
         let imageUrl = "";
@@ -58,12 +84,14 @@ export const createPrompt = async (req: AuthRequest, res: Response) => {
             imageUrl = await uploadToCloudinary(req.file.buffer);
         }
 
-        // Parse tags properly before saving
+        // Parse tags and normalize category before saving
         const parsedTags = parseTags(req.body.tags);
+        const categorySlug = await resolveCategorySlug(req.body.category);
 
         const prompt = await Prompt.create({
             ...req.body,
             tags: parsedTags,
+            ...(categorySlug ? { category: categorySlug } : {}),
             imgUrl: imageUrl,
             createdBy: req.user?.userId,
         });
@@ -89,9 +117,16 @@ export const getAllPromptsAdmin = async (_req: Request, res: Response) => {
 export const updatePrompt = async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    // Parse tags properly before updating
+    // Parse tags and normalize category before updating
     if (req.body.tags) {
         req.body.tags = parseTags(req.body.tags);
+    }
+
+    if (req.body.category) {
+        const categorySlug = await resolveCategorySlug(req.body.category);
+        if (categorySlug) {
+            req.body.category = categorySlug;
+        }
     }
 
     const updated = await Prompt.findByIdAndUpdate(id, req.body, {

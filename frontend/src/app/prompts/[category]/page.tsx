@@ -43,6 +43,16 @@ export default function CategoryPage() {
                 // 1. Fetch Categories to find the ID corresponding to the Slug
                 const categoriesResponse = await api.getCategories();
                 const categories = ((categoriesResponse as { data?: unknown[] }).data || categoriesResponse || []) as unknown[];
+                const categorySlugMap = new Map<string, string>();
+
+                categories
+                    .map((cat) => cat as Category)
+                    .forEach((cat) => {
+                        if (!cat) return;
+                        if (cat._id) categorySlugMap.set(cat._id, cat.slug || "");
+                        if (cat.slug) categorySlugMap.set(cat.slug.toLowerCase(), cat.slug);
+                        if (cat.name) categorySlugMap.set(cat.name.toLowerCase(), cat.slug || cat.name);
+                    });
                 
                 // Find category by slug (e.g. 'marketing') or by ID
                 const foundCategory = categories
@@ -78,9 +88,19 @@ export default function CategoryPage() {
                             ? (rawTags.trim().startsWith('[') ? JSON.parse(rawTags) : [rawTags])
                             : [];
 
+                                        const categorySource =
+                                                typeof prompt.category === 'object' && prompt.category !== null
+                                                        ? (prompt.category as { _id?: string; slug?: string }).slug ||
+                                                            (prompt.category as { _id?: string; slug?: string })._id ||
+                                                            ''
+                                                        : (prompt.category || '').toString();
+                                        const categoryValue = categorySource.toLowerCase();
+                                        const mappedSlug = categorySlugMap.get(categoryValue) || categorySlugMap.get(categorySource) || categorySource;
+
                     return {
                         ...prompt,
                         id: prompt._id || prompt.id,
+                        category: mappedSlug || categorySource,
                         tags: parsedTags,
                     } as Prompt;
                 });

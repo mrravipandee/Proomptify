@@ -61,18 +61,35 @@ export default function PromptsPage() {
                                             ? JSON.parse(prompt.tags) 
                                             : [], // Ensure tags is always an array
                                 }));
-                setAllPrompts(prompts);
-
                 // Fetch all categories (with high limit to get all)
                                 const categoriesResponse = await api.getCategories(1, 100);
                                 const categories: CategoryApiResponse[] = Array.isArray(categoriesResponse)
                                     ? categoriesResponse
                                     : (categoriesResponse as CategoriesApiResponse).data || [];
 
+                // Normalize prompt categories to slugs for consistent filtering
+                const categorySlugMap = new Map<string, string>();
+                categories.forEach((cat) => {
+                    categorySlugMap.set(cat._id, cat.slug);
+                    categorySlugMap.set(cat.slug.toLowerCase(), cat.slug);
+                    categorySlugMap.set(cat.name.toLowerCase(), cat.slug);
+                });
+
+                const normalizedPrompts = prompts.map((prompt) => {
+                    const categoryValue = (prompt.category || '').toString().toLowerCase();
+                    const mappedSlug = categorySlugMap.get(categoryValue) || categorySlugMap.get(prompt.category || '') || prompt.category;
+                    return {
+                        ...prompt,
+                        category: mappedSlug || prompt.category,
+                    } as Prompt;
+                });
+
+                setAllPrompts(normalizedPrompts);
+
                 // Build categories with their prompts
                 const categoryData: CategoryWithPrompts[] = categories
                     .map((cat: CategoryApiResponse) => {
-                        const categoryPrompts: Prompt[] = prompts.filter(
+                        const categoryPrompts: Prompt[] = normalizedPrompts.filter(
                             (p: Prompt) => p.category === cat.slug
                         );
                         return {
