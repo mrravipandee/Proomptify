@@ -12,6 +12,7 @@ const error_middleware_1 = require("./middlewares/error.middleware");
 const admin_prompt_routes_1 = __importDefault(require("./routes/admin.prompt.routes"));
 const prompts_routes_1 = __importDefault(require("./routes/prompts.routes"));
 const category_routes_1 = __importDefault(require("./routes/category.routes"));
+const ai_routes_1 = __importDefault(require("./routes/ai.routes"));
 const env_1 = require("./config/env");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
@@ -44,6 +45,7 @@ app.use("/api/usage", usage_routes_1.default);
 app.use("/api/admin/prompts", admin_prompt_routes_1.default);
 app.use("/api/prompts", prompts_routes_1.default);
 app.use("/api/categories", category_routes_1.default);
+app.use("/api/ai", ai_routes_1.default);
 app.get("/", (_, res) => {
     res.send("Hello, World!");
 });

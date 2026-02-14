@@ -377,4 +377,30 @@ export const api = {
       method: "DELETE",
     });
   },
+
+  // =======================================================
+  // AI PROMPT ANALYSIS
+  // =======================================================
+
+  /**
+   * Analyze prompt text and generate metadata using AI
+   * Returns: title, description, category, tags, steps, estimatedTime
+   * Requires: Authentication + Admin role
+   */
+  async analyzePrompt(promptText: string) {
+    return fetchWithAuth("/ai/analyze", {
+      method: "POST",
+      body: JSON.stringify({ promptText }),
+    }) as Promise<{
+      success: boolean;
+      data: {
+        title: string;
+        description: string;
+        category: string;
+        tags: string[];
+        steps: string[];
+        estimatedTime: string;
+      };
+    }>;
+  },
 };

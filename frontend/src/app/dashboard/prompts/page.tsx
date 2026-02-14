@@ -14,10 +14,12 @@ import {
   FileText,
   Copy,
   MoreHorizontal,
-  Loader
+  Loader,
+  Wand2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/lib/api';
+import Tesseract from 'tesseract.js';
 
 // --- Types ---
 interface Prompt {
@@ -48,6 +50,8 @@ export default function PromptsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [formLoading, setFormLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -225,6 +229,78 @@ export default function PromptsPage() {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddCompleteStep();
+    }
+  };
+
+  // AI Auto-Fill Handler
+  const handleAutoFill = async () => {
+    try {
+      let textToAnalyze = formData.promptText?.trim() || '';
+
+      // If no prompt text but image exists, try OCR
+      if (!textToAnalyze && imagePreview && formData.image) {
+        setOcrLoading(true);
+        try {
+          const result = await Tesseract.recognize(
+            formData.image,
+            'eng',
+            {
+              logger: (m) => console.log(m),
+            }
+          );
+          textToAnalyze = result.data.text.trim();
+          
+          // Also set the extracted text to promptText
+          if (textToAnalyze) {
+            setFormData(prev => ({ ...prev, promptText: textToAnalyze }));
+          }
+        } catch (ocrError) {
+          console.error('OCR Error:', ocrError);
+          alert('Failed to extract text from image. Please paste the prompt text manually.');
+          return;
+        } finally {
+          setOcrLoading(false);
+        }
+      }
+
+      if (!textToAnalyze) {
+        alert('Please enter prompt text or upload an image with text to auto-fill.');
+        return;
+      }
+
+      setAiLoading(true);
+
+      // Call AI API to analyze prompt
+      const response = await api.analyzePrompt(textToAnalyze);
+
+      if (response.success && response.data) {
+        const { title, description, category, tags, steps, estimatedTime } = response.data;
+
+        // Find matching category from the list
+        const matchedCategory = categories.find(
+          cat => cat.name.toLowerCase() === category.toLowerCase() ||
+                 cat.slug.toLowerCase() === category.toLowerCase()
+        );
+
+        setFormData(prev => ({
+          ...prev,
+          title: title || prev.title,
+          description: description || prev.description,
+          category: matchedCategory?._id || prev.category,
+          tags: tags || prev.tags,
+          steps: steps || prev.steps,
+          estimatedTime: estimatedTime || prev.estimatedTime,
+        }));
+      } else {
+        alert('AI analysis failed. Please try again.');
+      }
+    } catch (err: unknown) {
+      const error = err as Error;
+      console.error('Auto-fill error:', error);
+      alert(error.message || 'Failed to auto-fill. Please check your connection and try again.');
+    } finally {
+      setAiLoading(false);
+      setOcrLoading(false);
     }
   };
 
@@ -596,7 +672,10 @@ export default function PromptsPage() {
 
                 {/* Image Upload */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300">Cover Image *</label>
+                  <label className="text-sm font-medium text-gray-300 flex items-center justify-between">
+                    <span>Cover Image *</span>
+                    <span className="text-xs text-gray-500 font-normal">Upload image with prompt text for OCR</span>
+                  </label>
                   <div className="relative">
                     <input 
                       type="file" 
@@ -634,7 +713,28 @@ export default function PromptsPage() {
                 {/* Actual Prompt Text */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-300 flex items-center justify-between">
-                      Prompt Content
+                      <span className="flex items-center gap-2">
+                        Prompt Content
+                        <button
+                          type="button"
+                          onClick={handleAutoFill}
+                          disabled={aiLoading || ocrLoading}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg text-xs font-medium shadow-lg shadow-purple-900/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Auto-fill title, description, category, tags & steps using AI"
+                        >
+                          {aiLoading || ocrLoading ? (
+                            <>
+                              <Loader size={12} className="animate-spin" />
+                              {ocrLoading ? 'Extracting...' : 'Analyzing...'}
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 size={12} />
+                              Auto Fill
+                            </>
+                          )}
+                        </button>
+                      </span>
                       <span className="text-xs text-purple-400 font-normal">Supports markdown</span>
                   </label>
                   <div className="relative">
@@ -645,7 +745,7 @@ export default function PromptsPage() {
                         onChange={handleInputChange} 
                         rows={8}
                         className="w-full bg-[#050510] border border-white/10 rounded-xl px-4 py-3 text-gray-300 font-mono text-sm focus:border-purple-500 focus:outline-none leading-relaxed resize-none"
-                        placeholder="Enter the AI prompt template here..." 
+                        placeholder="Enter the AI prompt template here... Then click Auto Fill to generate title, description, tags & steps!" 
                     />
                   </div>
                 </div>

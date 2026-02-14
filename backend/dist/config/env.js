@@ -14,6 +14,9 @@ exports.config = {
         yearlyProductId: process.env.DODOPAYMENTS_YEARLY_PRODUCT_ID || '',
         lifetimeProductId: process.env.DODOPAYMENTS_LIFETIME_PRODUCT_ID || '',
     },
+    gemini: {
+        apiKey: process.env.GEMINI_API_KEY || '',
+    },
     urls: {
         frontend: process.env.FRONTEND_URL || 'http://localhost:3000',
         backend: process.env.BACKEND_URL || 'http://localhost:5500',
